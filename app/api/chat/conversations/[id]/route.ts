@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { query, ensureDatabaseSchema } from '@/lib/db';
+import { isChatProcessing } from '@/lib/chat-runs';
 
 async function requireAuth() {
   const session = await getSession();
@@ -69,9 +70,13 @@ export async function GET(
         effort_level: row.effort_level,
         tools_enabled: row.tools_enabled,
         is_archived: row.is_archived,
-        message_count: row.message_count,
+        user_message_count: row.user_message_count,
+        total_input_tokens: row.total_input_tokens,
+        total_output_tokens: row.total_output_tokens,
+        total_tokens: row.total_tokens,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        is_processing: isChatProcessing(row.id),
       },
       messages: chatHistory,
     });

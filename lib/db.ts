@@ -54,8 +54,15 @@ export interface ChatHistoryMessage {
   name: string | null;
   /** 'stop' | 'tool_calls' | 'length' | etc. */
   finish_reason: string | null;
-  /** Estimated token count for this turn */
-  token_count: number;
+  /** Effort level selected when this turn was sent (user + assistant turns; null for tool) */
+  effort_level: string | null;
+  /**
+   * Token usage reported by the provider for the LLM call that produced this turn
+   * (assistant turns only; null when the provider did not report usage).
+   */
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
   /** Reasoning / thinking tokens (e.g. DeepSeek-R1, Qwen) */
   reasoning_content: string | null;
   /** ISO-8601 timestamp of when this turn was created */
@@ -122,14 +129,38 @@ export async function ensureDatabaseSchema() {
       title VARCHAR(500) NOT NULL DEFAULT 'New Chat',
       model_id INTEGER REFERENCES models(id) ON DELETE SET NULL,
       system_prompt TEXT DEFAULT '',
+      -- Last selected effort level (restored in the UI); per-turn values live in chat_history
       effort_level VARCHAR(50) DEFAULT 'medium',
       tools_enabled BOOLEAN DEFAULT true,
       is_archived BOOLEAN NOT NULL DEFAULT false,
       chat_history JSONB NOT NULL DEFAULT '[]',
-      message_count INTEGER NOT NULL DEFAULT 0,
+      user_message_count INTEGER NOT NULL DEFAULT 0,
+      total_input_tokens BIGINT NOT NULL DEFAULT 0,
+      total_output_tokens BIGINT NOT NULL DEFAULT 0,
+      total_tokens BIGINT NOT NULL DEFAULT 0,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Token usage totals for chats created before these columns existed
+    ALTER TABLE chats ADD COLUMN IF NOT EXISTS total_input_tokens BIGINT NOT NULL DEFAULT 0;
+    ALTER TABLE chats ADD COLUMN IF NOT EXISTS total_output_tokens BIGINT NOT NULL DEFAULT 0;
+    ALTER TABLE chats ADD COLUMN IF NOT EXISTS total_tokens BIGINT NOT NULL DEFAULT 0;
+
+    -- Legacy message_count counted every chat_history entry (incl. tool turns);
+    -- rename it and recount only user messages
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'chats' AND column_name = 'message_count'
+      ) THEN
+        ALTER TABLE chats RENAME COLUMN message_count TO user_message_count;
+        UPDATE chats SET user_message_count = (
+          SELECT COUNT(*) FROM jsonb_array_elements(chat_history) m WHERE m->>'role' = 'user'
+        );
+      END IF;
+    END $$;
 
     CREATE UNIQUE INDEX IF NOT EXISTS idx_chats_session_id ON chats(session_id);
     CREATE INDEX IF NOT EXISTS idx_chats_user ON chats(user_id);

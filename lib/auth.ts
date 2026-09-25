@@ -93,6 +93,26 @@ export async function getSession(): Promise<AuthUser | null> {
 }
 
 /**
+ * Enforce admin authorization in Route Handlers
+ */
+export async function requireAdmin(): Promise<
+  { error: string; status: number; session: null } | { error: null; status: 200; session: AuthUser }
+> {
+  const session = await getSession();
+  if (!session) {
+    return { error: 'กรุณาเข้าสู่ระบบก่อนทำรายการ', status: 401, session: null };
+  }
+  if (session.role !== 'admin') {
+    return {
+      error: 'คุณไม่มีสิทธิ์เข้าถึงส่วนนี้ (สำหรับ Admin เท่านั้น)',
+      status: 403,
+      session: null,
+    };
+  }
+  return { error: null, status: 200, session };
+}
+
+/**
  * Store the JWT in an HTTP-only secure cookie
  */
 export async function setSessionCookie(token: string): Promise<void> {

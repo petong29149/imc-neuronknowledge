@@ -23,20 +23,21 @@ import {
   Sun,
   Moon,
   LogOut,
-  Home,
   ShieldCheck,
   Pencil,
   Check,
   X,
   Copy,
   MoreHorizontal,
-  Wrench,
   Server,
   Code,
   CheckCircle2,
   AlertCircle,
   Clock,
   Terminal,
+  LoaderCircle,
+  ArrowDown,
+  Square,
 } from "lucide-react";
 import AdminConsoleModal from "@/components/admin/AdminConsoleModal";
 
@@ -63,9 +64,10 @@ export interface Conversation {
   model_id_str: string | null;
   effort_level?: "low" | "medium" | "high";
   tools_enabled?: boolean;
-  message_count: number | string;
+  user_message_count: number | string;
   created_at: string;
   updated_at: string;
+  is_processing?: boolean;
 }
 
 export interface ChatMessage {
@@ -78,7 +80,10 @@ export interface ChatMessage {
   tool_call_id?: string | null;
   name?: string | null;
   finish_reason?: string | null;
-  token_count?: number;
+  effort_level?: "low" | "medium" | "high" | null;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+  total_tokens?: number | null;
   reasoning_content?: string | null;
   created_at: string;
 }
@@ -111,6 +116,8 @@ export interface UnifiedAssistantTurn {
   currentLoop?: number;
   maxSteps?: number;
   statusMessage?: string;
+  /** The user stopped this answer before it finished */
+  stopped?: boolean;
 }
 
 export interface UserTurn {
@@ -195,6 +202,7 @@ export function groupMessagesIntoTurns(messages: ChatMessage[]): ConversationTur
         // Final assistant synthesized answer
         currentAssistantTurn.finalContent = msg.content;
         currentAssistantTurn.finalReasoning = msg.reasoning_content || null;
+        currentAssistantTurn.stopped = msg.finish_reason === "stopped";
         if (msg.model_name) {
           currentAssistantTurn.model_name = msg.model_name;
         }
@@ -251,37 +259,65 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
   const [effortLevel, setEffortLevel] = useState<EffortLevel>("medium");
-  const [toolsEnabled, setToolsEnabled] = useState<boolean>(true);
 
   // Streaming Live Turn State
   const [inputMessage, setInputMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [liveStreamingTurn, setLiveStreamingTurn] = useState<UnifiedAssistantTurn | null>(null);
+  const [isStopping, setIsStopping] = useState(false);
 
   // UI state
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
-  const [effortDropdownOpen, setEffortDropdownOpen] = useState(false);
+  const [effortPopoverOpen, setEffortPopoverOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [adminModalTab, setAdminModalTab] = useState<"users" | "llm" | "mcp">("users");
   const [editingTitle, setEditingTitle] = useState<number | string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [showJumpToBottom, setShowJumpToBottom] = useState(false);
 
   // Refs
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Follow new output only while the user is at the bottom; scrolling up stops following
+  const followOutputRef = useRef(true);
+  // True while our own smooth "jump to bottom" scroll is animating
+  const autoScrollingRef = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const currentLoadedRef = useRef<string | null>(null);
+  const loadConversationRef = useRef<((idOrSessionId: string | number) => Promise<void>) | null>(null);
 
   const turns = useMemo(() => groupMessagesIntoTurns(messages), [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
+    followOutputRef.current = true;
+    setShowJumpToBottom(false);
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    if (behavior === "smooth") autoScrollingRef.current = true;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }, []);
+
+  const handleMessagesScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (autoScrollingRef.current) {
+      // Ignore the intermediate positions of our own smooth scroll
+      if (!atBottom) return;
+      autoScrollingRef.current = false;
+    }
+    followOutputRef.current = atBottom;
+    setShowJumpToBottom(!atBottom);
   };
 
-  useEffect(scrollToBottom, [messages, liveStreamingTurn]);
+  // Keep the newest output in view, unless the user has scrolled up to read
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (el && followOutputRef.current) el.scrollTop = el.scrollHeight;
+  }, [messages, liveStreamingTurn]);
 
   // ────── Data Fetching ──────
 
@@ -328,43 +364,383 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
     }
   }, []);
 
-  const loadConversation = useCallback(async (idOrSessionId: string | number) => {
-    try {
-      setIsChatLoading(true);
-      const res = await fetch(`/api/chat/conversations/${idOrSessionId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.messages || []);
-        if (data.conversation) {
-          setActiveConversationId(data.conversation.id);
-          setActiveSessionId(data.conversation.session_id || String(data.conversation.id));
-          currentLoadedRef.current = data.conversation.session_id || String(data.conversation.id);
-          if (data.conversation.model_id) {
-            setSelectedModelId(data.conversation.model_id);
-          }
-          if (data.conversation.effort_level) {
-            setEffortLevel(data.conversation.effort_level);
-          }
-          if (data.conversation.tools_enabled !== undefined) {
-            setToolsEnabled(Boolean(data.conversation.tools_enabled));
-          }
+  // Mirrors a chat-run SSE stream (a fresh answer or a re-attached one) into the live turn,
+  // then swaps in the saved messages once the turn is done.
+  const consumeChatStream = useCallback(
+    async (
+      res: Response,
+      controller: AbortController,
+      initialRef: { chatId: number | null; sessionId: string | null }
+    ) => {
+      const reader = res.body?.getReader();
+      if (!reader) {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+          setIsStreaming(false);
         }
-      } else if (res.status === 404) {
-        // If session not found, reset to new chat
-        if (typeof window !== "undefined") {
-          window.history.replaceState(null, "", "/chat");
-        }
-        currentLoadedRef.current = null;
-        setActiveConversationId(null);
-        setActiveSessionId(null);
-        setMessages([]);
+        return;
       }
-    } catch (err) {
-      console.error("Failed to load conversation:", err);
-    } finally {
-      setIsChatLoading(false);
-    }
-  }, []);
+
+      const decoder = new TextDecoder();
+      let sseBuffer = "";
+      let currentSessionChatId = initialRef.chatId;
+      let currentSessionUuid = initialRef.sessionId;
+      let reachedEnd = false;
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          sseBuffer += decoder.decode(value, { stream: true });
+          const lines = sseBuffer.split("\n");
+          sseBuffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed || !trimmed.startsWith("data: ")) continue;
+            const dataStr = trimmed.slice(6);
+            if (dataStr === "[DONE]") continue;
+
+            try {
+              const data = JSON.parse(dataStr);
+
+              if (data.type === "meta") {
+                if (data.chat_id) {
+                  currentSessionChatId = data.chat_id;
+                  setActiveConversationId(data.chat_id);
+                }
+                if (data.session_id) {
+                  currentSessionUuid = data.session_id;
+                  currentLoadedRef.current = data.session_id;
+                  setActiveSessionId(data.session_id);
+                  // Dynamically update URL to /chat/session-id without unmounting
+                  if (typeof window !== "undefined" && window.location.pathname !== `/chat/${data.session_id}`) {
+                    window.history.replaceState(null, "", `/chat/${data.session_id}`);
+                  }
+                }
+                setLiveStreamingTurn((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        model_name: data.model_name || prev.model_name,
+                        maxSteps: data.max_steps || prev.maxSteps,
+                      }
+                    : prev
+                );
+                // Show the (possibly new) chat in the sidebar with its processing indicator
+                fetchConversations();
+              } else if (data.type === "status") {
+                setLiveStreamingTurn((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        statusMessage: data.status_message || prev.statusMessage,
+                        currentLoop: data.step || prev.currentLoop,
+                      }
+                    : prev
+                );
+              } else if (data.type === "reasoning") {
+                setLiveStreamingTurn((prev) => {
+                  if (!prev) return prev;
+                  if (data.is_synthesis) {
+                    return {
+                      ...prev,
+                      finalReasoning: (prev.finalReasoning || "") + data.content,
+                    };
+                  }
+                  const stepNum = data.step || prev.currentLoop || 1;
+                  const steps = [...prev.steps];
+                  while (steps.length < stepNum) {
+                    steps.push({
+                      step: steps.length + 1,
+                      reasoning: "",
+                      tools: [],
+                      status: "running",
+                    });
+                  }
+                  steps[stepNum - 1] = {
+                    ...steps[stepNum - 1],
+                    reasoning: (steps[stepNum - 1].reasoning || "") + data.content,
+                  };
+                  return { ...prev, steps };
+                });
+              } else if (data.type === "tool_call_start") {
+                setLiveStreamingTurn((prev) => {
+                  if (!prev) return prev;
+                  const stepNum = data.step || prev.currentLoop || 1;
+                  const steps = [...prev.steps];
+                  while (steps.length < stepNum) {
+                    steps.push({
+                      step: steps.length + 1,
+                      reasoning: "",
+                      tools: [],
+                      status: "running",
+                    });
+                  }
+                  const currentStepTools = [...steps[stepNum - 1].tools];
+                  const existingIdx = currentStepTools.findIndex((t) => t.id === data.tool_call_id);
+                  const toolItem: AgentToolCallItem = {
+                    id: data.tool_call_id,
+                    name: data.tool_name,
+                    args: data.args,
+                    status: "running",
+                    step: data.step,
+                  };
+                  if (existingIdx >= 0) {
+                    currentStepTools[existingIdx] = toolItem;
+                  } else {
+                    currentStepTools.push(toolItem);
+                  }
+                  steps[stepNum - 1] = {
+                    ...steps[stepNum - 1],
+                    tools: currentStepTools,
+                  };
+                  return { ...prev, steps };
+                });
+              } else if (data.type === "tool_call_result") {
+                setLiveStreamingTurn((prev) => {
+                  if (!prev) return prev;
+                  const steps = prev.steps.map((s) => ({
+                    ...s,
+                    status: (s.step === data.step ? "done" : s.status) as "running" | "done",
+                    tools: s.tools.map((t) =>
+                      t.id === data.tool_call_id
+                        ? {
+                            ...t,
+                            status: (data.is_error ? "error" : "done") as "done" | "error",
+                            result: data.result,
+                          }
+                        : t
+                    ),
+                  }));
+                  return { ...prev, steps };
+                });
+              } else if (data.type === "content") {
+                setLiveStreamingTurn((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        finalContent: prev.finalContent + data.content,
+                      }
+                    : prev
+                );
+              } else if (data.type === "title") {
+                // LLM-generated title for a new chat — refresh the sidebar to show it
+                fetchConversations();
+              } else if (data.type === "done") {
+                reachedEnd = true;
+                // Immediately collapse streaming pipeline
+                setLiveStreamingTurn((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        isStreaming: false,
+                        statusMessage: "เสร็จสิ้น",
+                      }
+                    : prev
+                );
+
+                const targetChatRef =
+                  data.session_id || currentSessionUuid || data.chat_id || currentSessionChatId;
+                if (targetChatRef) {
+                  try {
+                    const convRes = await fetch(`/api/chat/conversations/${targetChatRef}`, {
+                      signal: controller.signal,
+                    });
+                    if (convRes.ok) {
+                      const convData = await convRes.json();
+                      // The user may have switched to another chat meanwhile
+                      if (controller.signal.aborted) return;
+                      if (convData.messages) {
+                        setMessages(convData.messages);
+                      }
+                      if (convData.conversation) {
+                        setActiveConversationId(convData.conversation.id);
+                        setActiveSessionId(convData.conversation.session_id);
+                      }
+                    }
+                  } catch {
+                    // silent
+                  }
+                }
+                if (controller.signal.aborted) return;
+                setLiveStreamingTurn(null);
+                fetchConversations();
+              } else if (data.type === "error") {
+                reachedEnd = true;
+                setLiveStreamingTurn((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        isStreaming: false,
+                        finalContent: prev.finalContent + `\n\n❌ LLM Error: ${data.error}`,
+                      }
+                    : null
+                );
+                fetchConversations();
+              }
+            } catch {
+              // skip unparseable
+            }
+          }
+        }
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          reachedEnd = true;
+          setLiveStreamingTurn((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  isStreaming: false,
+                  finalContent: prev.finalContent + "\n\n❌ เกิดข้อผิดพลาดในการเชื่อมต่อ",
+                }
+              : null
+          );
+        }
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+          setIsStreaming(false);
+        }
+      }
+
+      // The stream closed without finishing (e.g. server restarted or a proxy cut it):
+      // reload the chat, which re-attaches if the answer is still being generated.
+      const chatRef = currentSessionUuid || currentSessionChatId;
+      if (!reachedEnd && !controller.signal.aborted && chatRef) {
+        setLiveStreamingTurn(null);
+        loadConversationRef.current?.(chatRef);
+      }
+    },
+    [fetchConversations]
+  );
+
+  // Re-attach to an answer that is still being generated on the server
+  // (after a refresh, a closed tab, or coming back from another page or chat).
+  const resumeChatRun = useCallback(
+    async (conversation: { id: number; session_id?: string | null; model_name?: string | null }) => {
+      const chatRef = conversation.session_id || String(conversation.id);
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setIsStreaming(true);
+      setIsStopping(false);
+      setLiveStreamingTurn({
+        id: crypto.randomUUID(),
+        role: "assistant",
+        model_name: conversation.model_name || "AI Assistant",
+        created_at: new Date().toISOString(),
+        steps: [],
+        finalContent: "",
+        finalReasoning: null,
+        isStreaming: true,
+        currentLoop: 1,
+        statusMessage: "กำลังเชื่อมต่อกับการประมวลผลที่ยังทำงานอยู่...",
+      });
+
+      let res: Response;
+      try {
+        res = await fetch(`/api/chat/conversations/${chatRef}/stream`, { signal: controller.signal });
+      } catch (err: any) {
+        if (err.name === "AbortError") return;
+        res = new Response(null, { status: 503 });
+      }
+
+      if (res.status === 200) {
+        await consumeChatStream(res, controller, {
+          chatId: conversation.id,
+          sessionId: conversation.session_id || null,
+        });
+        return;
+      }
+
+      if (abortRef.current !== controller) return;
+      abortRef.current = null;
+      setIsStreaming(false);
+      setLiveStreamingTurn(null);
+      if (res.status === 204) {
+        // It finished in the meantime — load the saved answer
+        loadConversationRef.current?.(chatRef);
+      }
+    },
+    [consumeChatStream]
+  );
+
+  const loadConversation = useCallback(
+    async (idOrSessionId: string | number) => {
+      const requestedRef = String(idOrSessionId);
+      // Detach from any stream being shown; the server keeps processing it
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setIsStreaming(false);
+      setLiveStreamingTurn(null);
+      // Open the chat at its latest message
+      followOutputRef.current = true;
+      setShowJumpToBottom(false);
+
+      try {
+        setIsChatLoading(true);
+        const res = await fetch(`/api/chat/conversations/${idOrSessionId}`);
+        // Ignore a response for a chat the user has already left
+        if (currentLoadedRef.current !== null && currentLoadedRef.current !== requestedRef) return;
+        if (res.ok) {
+          const data = await res.json();
+          const loadedMessages: ChatMessage[] = data.messages || [];
+          if (data.conversation?.is_processing) {
+            // Drop this turn's partially saved steps; replaying the run rebuilds them live
+            const lastUserIdx = loadedMessages.map((m) => m.role).lastIndexOf("user");
+            setMessages(lastUserIdx >= 0 ? loadedMessages.slice(0, lastUserIdx + 1) : loadedMessages);
+          } else {
+            setMessages(loadedMessages);
+          }
+          if (data.conversation) {
+            setActiveConversationId(data.conversation.id);
+            setActiveSessionId(data.conversation.session_id || String(data.conversation.id));
+            currentLoadedRef.current = data.conversation.session_id || String(data.conversation.id);
+            if (data.conversation.model_id) {
+              setSelectedModelId(data.conversation.model_id);
+            }
+            if (data.conversation.effort_level) {
+              setEffortLevel(data.conversation.effort_level);
+            }
+            if (data.conversation.is_processing) {
+              resumeChatRun(data.conversation);
+            }
+          }
+        } else if (res.status === 404) {
+          // If session not found, reset to new chat
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, "", "/chat");
+          }
+          currentLoadedRef.current = null;
+          setActiveConversationId(null);
+          setActiveSessionId(null);
+          setMessages([]);
+        }
+      } catch (err) {
+        console.error("Failed to load conversation:", err);
+      } finally {
+        setIsChatLoading(false);
+      }
+    },
+    [resumeChatRun]
+  );
+  useEffect(() => {
+    loadConversationRef.current = loadConversation;
+  }, [loadConversation]);
+
+  // Detach from the stream when leaving the page (the server keeps processing)
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  // While any chat is still processing, keep the sidebar's status indicators fresh
+  const hasProcessingChats = conversations.some((c) => c.is_processing);
+  useEffect(() => {
+    if (!hasProcessingChats) return;
+    const timer = setInterval(fetchConversations, 4000);
+    return () => clearInterval(timer);
+  }, [hasProcessingChats, fetchConversations]);
 
   // Initial data loading
   useEffect(() => {
@@ -422,6 +798,8 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
     setLiveStreamingTurn(null);
     setMessages([]);
     setInputMessage("");
+    followOutputRef.current = true;
+    setShowJumpToBottom(false);
     inputRef.current?.focus();
   };
 
@@ -454,6 +832,9 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
     const userMessage = inputMessage.trim();
     setInputMessage("");
     setIsStreaming(true);
+    setIsStopping(false);
+    // Sending a message always jumps back to the latest output
+    scrollToBottom();
 
     // Optimistically add user message
     const tempUserMsg: ChatMessage = {
@@ -479,10 +860,9 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
     };
     setLiveStreamingTurn(initialLiveTurn);
 
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
-      const controller = new AbortController();
-      abortRef.current = controller;
-
       const currentConversationRef = activeSessionId || activeConversationId;
 
       const res = await fetch("/api/chat/completions", {
@@ -493,7 +873,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
           message: userMessage,
           model_id: selectedModelId,
           effort_level: effortLevel,
-          tools_enabled: toolsEnabled,
+          tools_enabled: true,
         }),
         signal: controller.signal,
       });
@@ -509,204 +889,17 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
               }
             : null
         );
-        setIsStreaming(false);
-        return;
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) {
-        setIsStreaming(false);
-        return;
-      }
-
-      const decoder = new TextDecoder();
-      let sseBuffer = "";
-      let currentSessionChatId = activeConversationId;
-      let currentSessionUuid = activeSessionId;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        sseBuffer += decoder.decode(value, { stream: true });
-        const lines = sseBuffer.split("\n");
-        sseBuffer = lines.pop() || "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith("data: ")) continue;
-          const dataStr = trimmed.slice(6);
-          if (dataStr === "[DONE]") continue;
-
-          try {
-            const data = JSON.parse(dataStr);
-
-            if (data.type === "meta") {
-              if (data.chat_id) {
-                currentSessionChatId = data.chat_id;
-                setActiveConversationId(data.chat_id);
-              }
-              if (data.session_id) {
-                currentSessionUuid = data.session_id;
-                setActiveSessionId(data.session_id);
-                // Dynamically update URL to /chat/session-id without unmounting
-                if (typeof window !== "undefined" && window.location.pathname !== `/chat/${data.session_id}`) {
-                  window.history.replaceState(null, "", `/chat/${data.session_id}`);
-                }
-              }
-              setLiveStreamingTurn((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      model_name: data.model_name || prev.model_name,
-                      maxSteps: data.max_steps || prev.maxSteps,
-                    }
-                  : prev
-              );
-            } else if (data.type === "status") {
-              setLiveStreamingTurn((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      statusMessage: data.status_message || prev.statusMessage,
-                      currentLoop: data.step || prev.currentLoop,
-                    }
-                  : prev
-              );
-            } else if (data.type === "reasoning") {
-              setLiveStreamingTurn((prev) => {
-                if (!prev) return prev;
-                if (data.is_synthesis) {
-                  return {
-                    ...prev,
-                    finalReasoning: (prev.finalReasoning || "") + data.content,
-                  };
-                }
-                const stepNum = data.step || prev.currentLoop || 1;
-                const steps = [...prev.steps];
-                while (steps.length < stepNum) {
-                  steps.push({
-                    step: steps.length + 1,
-                    reasoning: "",
-                    tools: [],
-                    status: "running",
-                  });
-                }
-                steps[stepNum - 1] = {
-                  ...steps[stepNum - 1],
-                  reasoning: (steps[stepNum - 1].reasoning || "") + data.content,
-                };
-                return { ...prev, steps };
-              });
-            } else if (data.type === "tool_call_start") {
-              setLiveStreamingTurn((prev) => {
-                if (!prev) return prev;
-                const stepNum = data.step || prev.currentLoop || 1;
-                const steps = [...prev.steps];
-                while (steps.length < stepNum) {
-                  steps.push({
-                    step: steps.length + 1,
-                    reasoning: "",
-                    tools: [],
-                    status: "running",
-                  });
-                }
-                const currentStepTools = [...steps[stepNum - 1].tools];
-                const existingIdx = currentStepTools.findIndex((t) => t.id === data.tool_call_id);
-                const toolItem: AgentToolCallItem = {
-                  id: data.tool_call_id,
-                  name: data.tool_name,
-                  args: data.args,
-                  status: "running",
-                  step: data.step,
-                };
-                if (existingIdx >= 0) {
-                  currentStepTools[existingIdx] = toolItem;
-                } else {
-                  currentStepTools.push(toolItem);
-                }
-                steps[stepNum - 1] = {
-                  ...steps[stepNum - 1],
-                  tools: currentStepTools,
-                };
-                return { ...prev, steps };
-              });
-            } else if (data.type === "tool_call_result") {
-              setLiveStreamingTurn((prev) => {
-                if (!prev) return prev;
-                const steps = prev.steps.map((s) => ({
-                  ...s,
-                  status: (s.step === data.step ? "done" : s.status) as "running" | "done",
-                  tools: s.tools.map((t) =>
-                    t.id === data.tool_call_id
-                      ? {
-                          ...t,
-                          status: (data.is_error ? "error" : "done") as "done" | "error",
-                          result: data.result,
-                        }
-                      : t
-                  ),
-                }));
-                return { ...prev, steps };
-              });
-            } else if (data.type === "content") {
-              setLiveStreamingTurn((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      finalContent: prev.finalContent + data.content,
-                    }
-                  : prev
-              );
-            } else if (data.type === "done") {
-              // Immediately collapse streaming pipeline
-              setLiveStreamingTurn((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      isStreaming: false,
-                      statusMessage: "เสร็จสิ้น",
-                    }
-                  : prev
-              );
-
-              const targetChatRef =
-                data.session_id || currentSessionUuid || data.chat_id || currentSessionChatId;
-              if (targetChatRef) {
-                try {
-                  const convRes = await fetch(`/api/chat/conversations/${targetChatRef}`);
-                  if (convRes.ok) {
-                    const convData = await convRes.json();
-                    if (convData.messages) {
-                      setMessages(convData.messages);
-                    }
-                    if (convData.conversation) {
-                      setActiveConversationId(convData.conversation.id);
-                      setActiveSessionId(convData.conversation.session_id);
-                    }
-                  }
-                } catch {
-                  // silent
-                }
-              }
-              setLiveStreamingTurn(null);
-              fetchConversations();
-            } else if (data.type === "error") {
-              setLiveStreamingTurn((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      isStreaming: false,
-                      finalContent: prev.finalContent + `\n\n❌ LLM Error: ${data.error}`,
-                    }
-                  : null
-              );
-            }
-          } catch {
-            // skip unparseable
-          }
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+          setIsStreaming(false);
         }
+        return;
       }
+
+      await consumeChatStream(res, controller, {
+        chatId: activeConversationId,
+        sessionId: activeSessionId,
+      });
     } catch (err: any) {
       if (err.name !== "AbortError") {
         setLiveStreamingTurn((prev) =>
@@ -719,9 +912,25 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
             : null
         );
       }
-    } finally {
-      setIsStreaming(false);
-      abortRef.current = null;
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+        setIsStreaming(false);
+      }
+    }
+  };
+
+  // Ask the server to stop the answer being generated. The stream then ends normally,
+  // with whatever was generated so far saved as the answer.
+  const handleStopResponse = async () => {
+    const chatRef = activeSessionId || activeConversationId;
+    if (!chatRef || isStopping) return;
+    setIsStopping(true);
+    setLiveStreamingTurn((prev) => (prev ? { ...prev, statusMessage: "กำลังหยุดการตอบ..." } : prev));
+    try {
+      const res = await fetch(`/api/chat/conversations/${chatRef}/stop`, { method: "POST" });
+      if (!res.ok) setIsStopping(false);
+    } catch {
+      setIsStopping(false);
     }
   };
 
@@ -774,7 +983,8 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
   };
 
   const selectedModel = models.find((m) => m.id === selectedModelId);
-  const currentEffort = EFFORT_OPTIONS.find((e) => e.id === effortLevel) || EFFORT_OPTIONS[1];
+  const effortIndex = EFFORT_OPTIONS.findIndex((e) => e.id === effortLevel);
+  const currentEffort = EFFORT_OPTIONS[effortIndex] || EFFORT_OPTIONS[1];
 
   // ────── Loading ──────
 
@@ -792,7 +1002,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
   // ────────────── Render ──────────────
 
   return (
-    <div className="h-screen flex bg-slate-50 dark:bg-[#060911] text-slate-900 dark:text-slate-100 font-sans overflow-hidden">
+    <div className="h-screen flex bg-slate-100 dark:bg-[#060911] text-slate-900 dark:text-slate-100 font-sans overflow-hidden">
       {/* ═══════════ SIDEBAR ═══════════ */}
       <aside
         className={`${
@@ -811,7 +1021,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
           </Link>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/5 transition-all cursor-pointer"
             title="ซ่อนแถบด้านข้าง"
           >
             <PanelLeftClose className="w-4 h-4" />
@@ -833,26 +1043,34 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
         <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5">
           {conversations.length === 0 ? (
             <div className="text-center py-8">
-              <MessageSquare className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
-              <p className="text-xs text-slate-400 dark:text-slate-600">ยังไม่มีประวัติแชท</p>
+              <MessageSquare className="w-8 h-8 text-slate-400 dark:text-slate-700 mx-auto mb-2" />
+              <p className="text-xs text-slate-500 dark:text-slate-600">ยังไม่มีประวัติแชท</p>
             </div>
           ) : (
             conversations.map((conv) => {
               const isSelected =
                 (activeSessionId && conv.session_id === activeSessionId) ||
                 (activeConversationId && conv.id === activeConversationId);
+              const isProcessing = conv.is_processing || (isSelected && isStreaming);
 
               return (
                 <div
                   key={conv.session_id || conv.id}
                   className={`group flex items-center gap-2 px-2.5 py-2 rounded-xl cursor-pointer transition-all text-xs ${
                     isSelected
-                      ? "bg-[#0055fa]/10 text-[#0055fa] dark:text-blue-400 border border-[#0055fa]/20 font-medium"
-                      : "hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 border border-transparent"
+                      ? "bg-[#0055fa]/10 text-[#0046d1] dark:text-blue-400 border border-[#0055fa]/30 dark:border-[#0055fa]/20 font-semibold"
+                      : "hover:bg-slate-100 hover:border-slate-200 dark:hover:bg-white/5 dark:hover:border-transparent text-slate-700 dark:text-slate-400 border border-transparent"
                   }`}
                   onClick={() => handleSelectConversation(conv)}
                 >
-                  <MessageSquare className="w-3.5 h-3.5 shrink-0" />
+                  {isProcessing ? (
+                    <LoaderCircle
+                      className="w-3.5 h-3.5 shrink-0 animate-spin text-[#0055fa] dark:text-blue-400"
+                      aria-label="กำลังประมวลผล"
+                    />
+                  ) : (
+                    <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${isSelected ? "" : "text-slate-400 dark:text-inherit"}`} />
+                  )}
                   {editingTitle === (conv.session_id || conv.id) ? (
                     <div className="flex-1 flex items-center gap-1">
                       <input
@@ -879,7 +1097,12 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                     </div>
                   ) : (
                     <>
-                      <span className="flex-1 truncate">{conv.title}</span>
+                      <span
+                        className={`flex-1 truncate ${isProcessing ? "animate-title-shimmer" : ""}`}
+                        title={isProcessing ? "กำลังประมวลผลคำตอบ..." : undefined}
+                      >
+                        {conv.title}
+                      </span>
                       <div className="hidden group-hover:flex items-center gap-2 shrink-0">
                         <button
                           onClick={(e) => {
@@ -887,7 +1110,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                             setEditingTitle(conv.session_id || conv.id);
                             setEditTitle(conv.title);
                           }}
-                          className="rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          className="rounded text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-300"
                           title="เปลี่ยนชื่อแชท"
                         >
                           <Pencil className="w-3 h-3" />
@@ -897,7 +1120,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                             e.stopPropagation();
                             handleDeleteConversation(conv);
                           }}
-                          className="rounded text-slate-400 hover:text-rose-500"
+                          className="rounded text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-500"
                           title="ลบแชท"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -916,7 +1139,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
           {userMenuOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setUserMenuOpen(false)} />
-              <div className="absolute bottom-full left-2 right-2 mb-2 p-1.5 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl z-40 space-y-1 animate-in fade-in duration-150">
+              <div className="absolute bottom-full left-2 right-2 mb-2 p-1.5 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl z-40 space-y-1 animate-popover">
                 {user?.role === "admin" && (
                   <>
                     <button
@@ -1019,184 +1242,26 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
       </aside>
 
       {/* ═══════════ MAIN CHAT AREA ═══════════ */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Chat Top Header */}
-        <header className="shrink-0 flex items-center justify-between px-3 sm:px-4 py-2.5 border-b border-slate-200 dark:border-white/8 bg-white/80 dark:bg-[#0a0f1e]/80 backdrop-blur-xl gap-2 flex-wrap sm:flex-nowrap">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            {!sidebarOpen && (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
-                title="เปิดแถบด้านข้าง"
-              >
-                <PanelLeft className="w-4 h-4" />
-              </button>
-            )}
+      <div className="relative flex-1 flex flex-col min-w-0">
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="absolute top-3 left-3 z-30 p-2 rounded-xl text-slate-500 dark:text-slate-400 bg-white/90 dark:bg-[#0a0f1e]/90 border border-slate-200 dark:border-white/10 shadow-sm hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-white/10 transition-all cursor-pointer"
+            title="เปิดแถบด้านข้าง"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+        )}
 
-            {/* Model Selector */}
-            <div className="relative">
-              <button
-                onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-xl transition-all cursor-pointer"
-              >
-                <Brain className="w-3.5 h-3.5 text-[#0055fa]" />
-                <span className="max-w-[140px] sm:max-w-[200px] truncate">
-                  {selectedModel?.display_name || "เลือก Model"}
-                </span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
-              </button>
-
-              {modelDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-30"
-                    onClick={() => setModelDropdownOpen(false)}
-                  />
-                  <div className="absolute top-full left-0 mt-1 w-72 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-40 py-1 max-h-64 overflow-y-auto">
-                    {models.map((model) => (
-                      <button
-                        key={model.id}
-                        onClick={() => {
-                          setSelectedModelId(model.id);
-                          setModelDropdownOpen(false);
-                        }}
-                        className={`w-full flex items-start gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-left cursor-pointer ${
-                          selectedModelId === model.id ? "bg-[#0055fa]/5" : ""
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-semibold truncate">
-                              {model.display_name}
-                            </span>
-                            {model.is_default && (
-                              <span className="px-1 text-[8px] font-bold bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded">
-                                DEF
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-slate-400 truncate">
-                            {model.connection_name}
-                          </p>
-                        </div>
-                        {selectedModelId === model.id && (
-                          <Check className="w-3.5 h-3.5 text-[#0055fa] shrink-0 mt-0.5" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Effort Level Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setEffortDropdownOpen(!effortDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-xl transition-all cursor-pointer"
-                title="เลือกระดับความลึกในการคิด (Effort Level)"
-              >
-                <span>{currentEffort.icon}</span>
-                <span className="hidden sm:inline">Effort:</span>
-                <span>{currentEffort.label}</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
-              </button>
-
-              {effortDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-30"
-                    onClick={() => setEffortDropdownOpen(false)}
-                  />
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-40 p-1.5 space-y-1">
-                    <div className="px-2 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                      LLM Reasoning Effort
-                    </div>
-                    {EFFORT_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => {
-                          setEffortLevel(opt.id);
-                          setEffortDropdownOpen(false);
-                        }}
-                        className={`w-full flex items-start gap-2.5 p-2 rounded-lg text-left transition-colors cursor-pointer ${
-                          effortLevel === opt.id
-                            ? "bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20"
-                            : "hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent"
-                        }`}
-                      >
-                        <span className="text-base shrink-0">{opt.icon}</span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                              {opt.label} Effort
-                            </span>
-                            {effortLevel === opt.id && (
-                              <Check className="w-3.5 h-3.5 text-[#0055fa]" />
-                            )}
-                          </div>
-                          <p className="text-[10px] text-slate-400 mt-0.5 leading-snug">
-                            {opt.desc}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* MCP Tools Toggle Button */}
-            <button
-              onClick={() => setToolsEnabled(!toolsEnabled)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
-                toolsEnabled
-                  ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20 shadow-xs"
-                  : "bg-slate-100 dark:bg-white/5 text-slate-400 border-slate-200 dark:border-white/10"
-              }`}
-              title={toolsEnabled ? "คลิกเพื่อปิดการใช้งาน Tools" : "คลิกเพื่อเปิดการใช้งาน Tools"}
-            >
-              <Wrench className="w-3.5 h-3.5" />
-              <span>Tools</span>
-              <span
-                className={`px-1 py-0.2 text-[9px] rounded font-bold ${
-                  toolsEnabled
-                    ? "bg-emerald-200/60 dark:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300"
-                    : "bg-slate-200 dark:bg-white/10 text-slate-400"
-                }`}
-              >
-                {toolsEnabled ? `${activeToolsCount}` : "OFF"}
-              </span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {user?.role === "admin" && (
-              <button
-                onClick={() => {
-                  setAdminModalTab("mcp");
-                  setIsAdminModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-xl transition-all shadow-xs cursor-pointer"
-                title="จัดการ MCP Servers และ Tools"
-              >
-                <Server className="w-3.5 h-3.5 text-[#0055fa]" />
-                <span className="hidden md:inline">MCP Console</span>
-              </button>
-            )}
-
-            <Link
-              href="/"
-              className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
-              title="หน้าเว็บไซต์หลัก"
-            >
-              <Home className="w-4 h-4" />
-            </Link>
-          </div>
-        </header>
 
         {/* Messages Scroll Area */}
-        <div className="flex-1 overflow-y-auto relative">
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleMessagesScroll}
+          onWheel={() => (autoScrollingRef.current = false)}
+          onTouchStart={() => (autoScrollingRef.current = false)}
+          className="flex-1 overflow-y-auto relative"
+        >
           {/* Subtle top progress bar when loading chat */}
           {isChatLoading && (
             <div className="sticky top-0 left-0 right-0 z-20 h-0.5 w-full bg-gradient-to-r from-[#0055fa] via-indigo-500 to-[#0055fa] animate-pulse" />
@@ -1281,16 +1346,26 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                   onCopy={handleCopyMessage}
                 />
               )}
-
-              <div ref={messagesEndRef} />
             </div>
           )}
         </div>
 
         {/* Input Box Area */}
-        <div className="shrink-0 px-4 pb-4 pt-2">
-          <div className="max-w-3xl mx-auto">
-            <div className="relative bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-2xl shadow-lg shadow-slate-900/5 dark:shadow-none focus-within:border-[#0055fa]/40 focus-within:ring-2 focus-within:ring-[#0055fa]/10 transition-all">
+        <div className="shrink-0 px-4 pb-3 pt-1">
+          <div className="relative max-w-3xl mx-auto">
+            {showJumpToBottom && (turns.length > 0 || liveStreamingTurn) && (
+              <button
+                type="button"
+                onClick={() => scrollToBottom("smooth")}
+                className="absolute -top-12 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white/95 dark:bg-[#0d1322]/95 border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-900/10 dark:shadow-black/30 hover:text-[#0055fa] dark:hover:text-blue-400 hover:border-[#0055fa]/30 transition-colors cursor-pointer"
+                title="เลื่อนไปข้อความล่าสุด"
+              >
+                {isStreaming && <span className="w-1.5 h-1.5 rounded-full bg-[#0055fa] animate-pulse" />}
+                <ArrowDown className="w-4 h-4" />
+                {isStreaming && <span>ติดตามคำตอบ</span>}
+              </button>
+            )}
+            <div className="relative bg-white dark:bg-white/[0.03] border border-slate-300/80 dark:border-white/10 rounded-2xl shadow-lg shadow-slate-900/8 dark:shadow-none focus-within:border-[#0055fa]/40 focus-within:ring-2 focus-within:ring-[#0055fa]/10 transition-all">
               <textarea
                 ref={inputRef}
                 value={inputMessage}
@@ -1298,10 +1373,10 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                 onKeyDown={handleKeyDown}
                 placeholder="พิมพ์คำสั่งหรือข้อความ... (Enter เพื่อส่ง, Shift+Enter ขึ้นบรรทัดใหม่)"
                 rows={1}
-                className="w-full px-4 py-3.5 pr-14 text-sm bg-transparent outline-hidden resize-none max-h-40 placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                className="block w-full px-4 pt-3 pb-1 text-sm bg-transparent outline-hidden resize-none max-h-40 placeholder:text-slate-500 dark:placeholder:text-slate-600"
                 style={{
                   height: "auto",
-                  minHeight: "52px",
+                  minHeight: "40px",
                 }}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
@@ -1309,23 +1384,187 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                   target.style.height = Math.min(target.scrollHeight, 160) + "px";
                 }}
               />
-              <button
-                onClick={handleSendMessage}
-                disabled={!inputMessage.trim() || isStreaming}
-                className="absolute right-2.5 bottom-2.5 p-2 rounded-xl bg-[#0055fa] text-white hover:bg-[#0046d1] disabled:opacity-30 disabled:cursor-not-allowed shadow-md shadow-[#0055fa]/20 transition-all cursor-pointer"
-              >
+
+              {/* Composer Toolbar: Model, Effort, Send */}
+              <div className="flex items-center gap-0.5 px-2 pb-2">
+                {/* Model Selector */}
+                <div className="relative min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                    aria-haspopup="listbox"
+                    aria-expanded={modelDropdownOpen}
+                    className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer ${
+                      modelDropdownOpen ? "bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white" : ""
+                    }`}
+                    title="เลือก Model"
+                  >
+                    <Brain className="w-3.5 h-3.5 text-[#0055fa] shrink-0" />
+                    <span className="max-w-[140px] sm:max-w-[220px] truncate">
+                      {selectedModel?.display_name || "เลือก Model"}
+                    </span>
+                    <ChevronDown
+                      className={`w-3 h-3 text-slate-400 shrink-0 transition-transform ${
+                        modelDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {modelDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-30"
+                        onClick={() => setModelDropdownOpen(false)}
+                      />
+                      <div
+                        role="listbox"
+                        className="absolute bottom-full left-0 mb-2 w-72 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-40 py-1 max-h-64 overflow-y-auto animate-popover"
+                      >
+                        {models.map((model) => (
+                          <button
+                            key={model.id}
+                            type="button"
+                            role="option"
+                            aria-selected={selectedModelId === model.id}
+                            onClick={() => {
+                              setSelectedModelId(model.id);
+                              setModelDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-start gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-left cursor-pointer ${
+                              selectedModelId === model.id ? "bg-[#0055fa]/5" : ""
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-semibold truncate">
+                                  {model.display_name}
+                                </span>
+                                {model.is_default && (
+                                  <span className="px-1 text-[8px] font-bold bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded">
+                                    DEF
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-slate-400 truncate">
+                                {model.connection_name}
+                              </p>
+                            </div>
+                            {selectedModelId === model.id && (
+                              <Check className="w-3.5 h-3.5 text-[#0055fa] shrink-0 mt-0.5" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Effort Level: compact trigger, slider in popover */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setEffortPopoverOpen(!effortPopoverOpen)}
+                    aria-haspopup="dialog"
+                    aria-expanded={effortPopoverOpen}
+                    className={`flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer ${
+                      effortPopoverOpen ? "bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white" : ""
+                    }`}
+                    title="ระดับความลึกในการคิด (Effort Level)"
+                  >
+                    <span>{currentEffort.icon}</span>
+                    <span>{currentEffort.label}</span>
+                  </button>
+
+                  {effortPopoverOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-30"
+                        onClick={() => setEffortPopoverOpen(false)}
+                      />
+                      <div
+                        role="dialog"
+                        aria-label="Effort Level"
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape" || e.key === "Enter") {
+                            e.preventDefault();
+                            setEffortPopoverOpen(false);
+                            inputRef.current?.focus();
+                          }
+                        }}
+                        className="absolute bottom-full left-0 mb-2 w-60 p-3 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-40 animate-popover"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                            Reasoning Effort
+                          </span>
+                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                            {currentEffort.icon} {currentEffort.label}
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={EFFORT_OPTIONS.length - 1}
+                          step={1}
+                          value={effortIndex}
+                          onChange={(e) => setEffortLevel(EFFORT_OPTIONS[Number(e.target.value)].id)}
+                          aria-label="ระดับความลึกในการคิด (Effort Level)"
+                          aria-valuetext={`${currentEffort.label} Effort`}
+                          autoFocus
+                          className="w-full h-1.5 accent-[#0055fa] cursor-pointer"
+                        />
+                        <div className="grid grid-cols-3 mt-1 text-[10px]">
+                          {EFFORT_OPTIONS.map((opt, idx) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => setEffortLevel(opt.id)}
+                              className={`cursor-pointer transition-colors ${
+                                idx === 0 ? "text-left" : idx === EFFORT_OPTIONS.length - 1 ? "text-right" : "text-center"
+                              } ${
+                                effortLevel === opt.id
+                                  ? "font-semibold text-[#0055fa] dark:text-blue-400"
+                                  : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="mt-2 pt-2 border-t border-slate-100 dark:border-white/5 text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+                          {currentEffort.desc}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
                 {isStreaming ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <button
+                    type="button"
+                    onClick={handleStopResponse}
+                    disabled={isStopping || !(activeSessionId || activeConversationId)}
+                    className="ml-auto p-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+                    title={isStopping ? "กำลังหยุด..." : "หยุดการตอบ"}
+                    aria-label="หยุดการตอบ"
+                  >
+                    {isStopping ? (
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Square className="w-4 h-4 fill-current" />
+                    )}
+                  </button>
                 ) : (
-                  <Send className="w-4 h-4" />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim()}
+                    className="ml-auto p-1.5 rounded-lg bg-[#0055fa] text-white hover:bg-[#0046d1] disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                    title="ส่งข้อความ"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
                 )}
-              </button>
-            </div>
-            <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-2 px-1">
-              <span>
-                Engine: {selectedModel?.display_name || "Auto"} • Effort: {currentEffort.label} • Tools: {toolsEnabled ? "Enabled" : "Disabled"}
-              </span>
-              <span>NeuronKnowledge Enterprise AI</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1404,9 +1643,9 @@ function UnifiedAssistantBubble({
       </div>
 
       {/* Unified Bubble Card */}
-      <div className="flex-1 min-w-0 bg-white dark:bg-[#0c1222] border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm shadow-slate-900/5 space-y-3 transition-all">
+      <div className="flex-1 min-w-0 bg-white dark:bg-[#0c1222] border border-slate-200 dark:border-white/10 rounded-2xl p-4 shadow-sm shadow-slate-900/10 dark:shadow-slate-900/5 space-y-3 transition-all">
         {/* Header bar: Model, Status & Copy */}
-        <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-white/5 pb-2.5">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-white/5 pb-2.5">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
               {turn.model_name || "AI Agent"}
@@ -1425,8 +1664,16 @@ function UnifiedAssistantBubble({
                   </span>
                 )}
               </span>
+            ) : turn.stopped ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20">
+                <Square className="w-2.5 h-2.5 fill-current" />
+                <span>
+                  หยุดการตอบแล้ว
+                  {turn.steps.length > 0 && ` • ${turn.steps.length} ขั้นตอน`}
+                </span>
+              </span>
             ) : hasPipeline ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-transparent">
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                 <span>
                   ประมวลผล {turn.steps.length} ขั้นตอน
@@ -1440,7 +1687,7 @@ function UnifiedAssistantBubble({
             {turn.finalContent && (
               <button
                 onClick={handleCopy}
-                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-slate-50 dark:bg-white/5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-all cursor-pointer"
+                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-transparent rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all cursor-pointer"
                 title="คัดลอกคำตอบ"
               >
                 {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
@@ -1452,12 +1699,12 @@ function UnifiedAssistantBubble({
 
         {/* ─── Reasoning & Tool Execution Pipeline (Collapsible) ─── */}
         {hasPipeline && (
-          <div className="rounded-xl border border-purple-200/70 dark:border-purple-500/20 bg-purple-50/30 dark:bg-purple-950/15 overflow-hidden transition-all">
+          <div className="rounded-xl border border-purple-200 dark:border-purple-500/20 bg-purple-50/70 dark:bg-purple-950/15 overflow-hidden transition-all">
             {/* Pipeline Accordion Toggle Bar */}
             <button
               type="button"
               onClick={() => setPipelineExpanded(!pipelineExpanded)}
-              className="w-full flex items-center justify-between px-3.5 py-2 hover:bg-purple-100/30 dark:hover:bg-purple-900/20 transition-colors text-left cursor-pointer select-none"
+              className="w-full flex items-center justify-between px-3.5 py-2 hover:bg-purple-100/70 dark:hover:bg-purple-900/20 transition-colors text-left cursor-pointer select-none"
             >
               <div className="flex items-center gap-2 min-w-0">
                 <div className="p-1 rounded-lg bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400">
@@ -1489,9 +1736,9 @@ function UnifiedAssistantBubble({
 
             {/* Expanded Timeline Content */}
             {pipelineExpanded && (
-              <div className="p-3.5 pt-2 border-t border-purple-200/50 dark:border-purple-500/20 space-y-4 text-xs">
+              <div className="p-3.5 pt-2 border-t border-purple-200 dark:border-purple-500/20 space-y-4 text-xs">
                 {turn.steps.map((step) => (
-                  <div key={step.step} className="relative pl-4 border-l-2 border-purple-200 dark:border-purple-800/50 space-y-2">
+                  <div key={step.step} className="relative pl-4 border-l-2 border-purple-300 dark:border-purple-800/50 space-y-2">
                     {/* Step Beacon Header */}
                     <div className="flex items-center gap-2 -ml-[23px]">
                       <div className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[9px] font-bold shadow-xs">
@@ -1509,7 +1756,7 @@ function UnifiedAssistantBubble({
 
                     {/* Step Thinking Process */}
                     {step.reasoning && (
-                      <div className="rounded-lg bg-white/80 dark:bg-[#070b16] border border-purple-100 dark:border-purple-900/30 p-2.5 text-slate-700 dark:text-slate-300 leading-relaxed font-sans space-y-1">
+                      <div className="rounded-lg bg-white dark:bg-[#070b16] border border-purple-200 dark:border-purple-900/30 p-2.5 text-slate-700 dark:text-slate-300 leading-relaxed font-sans space-y-1">
                         <div className="flex items-center gap-1 text-[10px] font-semibold text-purple-700 dark:text-purple-400">
                           <Brain className="w-3 h-3" />
                           <span>ความคิดวิเคราะห์ (Thinking):</span>
@@ -1536,7 +1783,7 @@ function UnifiedAssistantBubble({
 
                 {/* Final Synthesis Reasoning (if present) */}
                 {turn.finalReasoning && (
-                  <div className="relative pl-4 border-l-2 border-emerald-300 dark:border-emerald-800/50 space-y-1.5">
+                  <div className="relative pl-4 border-l-2 border-emerald-400 dark:border-emerald-800/50 space-y-1.5">
                     <div className="flex items-center gap-2 -ml-[23px]">
                       <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-bold">
                         ✓
@@ -1545,7 +1792,7 @@ function UnifiedAssistantBubble({
                         การวิเคราะห์และสังเคราะห์คำตอบสุดท้าย (Final Synthesis)
                       </span>
                     </div>
-                    <div className="rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30 p-2.5 text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/30 p-2.5 text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                       <InlineMarkdown text={turn.finalReasoning} />
                     </div>
                   </div>
@@ -1592,7 +1839,7 @@ function StepToolCard({ tool }: { tool: AgentToolCallItem }) {
           ? "bg-blue-50/80 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/25"
           : tool.status === "error"
           ? "bg-rose-50/80 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/25"
-          : "bg-white dark:bg-[#070b16] border-slate-200/80 dark:border-white/10"
+          : "bg-white dark:bg-[#070b16] border-slate-300/70 dark:border-white/10 shadow-xs dark:shadow-none"
       }`}
     >
       <div
@@ -1625,15 +1872,15 @@ function StepToolCard({ tool }: { tool: AgentToolCallItem }) {
           </span>
         </div>
 
-        <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5">
+        <button className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 p-0.5">
           {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </button>
       </div>
 
       {expanded && (
-        <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-white/10 space-y-2 font-mono text-[11px]">
+        <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-white/10 space-y-2 font-mono text-[11px]">
           <div>
-            <div className="text-[10px] text-slate-400 font-sans mb-1">Arguments:</div>
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans mb-1">Arguments:</div>
             <pre className="p-2 bg-slate-900 text-slate-200 rounded-lg overflow-x-auto">
               {JSON.stringify(tool.args, null, 2)}
             </pre>
@@ -1641,7 +1888,7 @@ function StepToolCard({ tool }: { tool: AgentToolCallItem }) {
 
           {tool.result && (
             <div>
-              <div className="text-[10px] text-slate-400 font-sans mb-1">Output Result:</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-sans mb-1">Output Result:</div>
               <pre className="p-2 bg-slate-900 text-emerald-400 rounded-lg overflow-x-auto max-h-48 whitespace-pre-wrap">
                 {tool.result}
               </pre>
@@ -1672,10 +1919,10 @@ function MessageContent({ content }: { content: string }) {
     const bodyRows = tableRows.slice(1);
 
     elements.push(
-      <div key={`table-${keyIndex}`} className="my-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10 shadow-xs">
+      <div key={`table-${keyIndex}`} className="my-3 overflow-x-auto rounded-xl border border-slate-300/70 dark:border-white/10 shadow-xs">
         <table className="w-full text-xs text-left border-collapse">
           {headerRow && (
-            <thead className="bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-semibold">
+            <thead className="bg-slate-100 dark:bg-white/5 border-b border-slate-300/70 dark:border-white/10 text-slate-700 dark:text-slate-200 font-semibold">
               <tr>
                 {headerRow.map((col, cIdx) => (
                   <th key={cIdx} className="px-3 py-2">
@@ -1685,11 +1932,11 @@ function MessageContent({ content }: { content: string }) {
               </tr>
             </thead>
           )}
-          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+          <tbody className="divide-y divide-slate-200 dark:divide-white/5">
             {bodyRows.map((row, rIdx) => (
               <tr key={rIdx} className="hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                 {row.map((col, cIdx) => (
-                  <td key={cIdx} className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                  <td key={cIdx} className="px-3 py-2 text-slate-700 dark:text-slate-300">
                     <InlineMarkdown text={col.trim()} />
                   </td>
                 ))}
@@ -1826,18 +2073,18 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
   };
 
   return (
-    <div className="my-3 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-xs">
-      <div className="flex items-center justify-between px-3.5 py-1.5 text-[10px] font-mono font-semibold text-slate-500 bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+    <div className="my-3 rounded-xl overflow-hidden border border-slate-300/70 dark:border-white/10 shadow-xs">
+      <div className="flex items-center justify-between px-3.5 py-1.5 text-[10px] font-mono font-semibold text-slate-600 dark:text-slate-500 bg-slate-200/60 dark:bg-white/5 border-b border-slate-300/70 dark:border-white/10">
         <span>{language || "code"}</span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+          className="flex items-center gap-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
         >
           {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
           <span>{copied ? "Copied" : "Copy"}</span>
         </button>
       </div>
-      <pre className="px-4 py-3 text-xs font-mono overflow-x-auto bg-slate-50 dark:bg-[#070b16] text-slate-800 dark:text-slate-200 leading-relaxed">
+      <pre className="px-4 py-3 text-xs font-mono overflow-x-auto bg-slate-100/70 dark:bg-[#070b16] text-slate-800 dark:text-slate-200 leading-relaxed">
         <code>{code}</code>
       </pre>
     </div>
@@ -1858,7 +2105,7 @@ function InlineMarkdown({ text }: { text: string }) {
       parts.push(
         <code
           key={key++}
-          className="px-1.5 py-0.5 text-xs font-mono bg-slate-100 dark:bg-white/10 text-rose-600 dark:text-rose-400 rounded"
+          className="px-1.5 py-0.5 text-xs font-mono bg-slate-100 dark:bg-white/10 text-rose-600 dark:text-rose-400 border border-slate-200 dark:border-transparent rounded"
         >
           {codeMatch[2]}
         </code>

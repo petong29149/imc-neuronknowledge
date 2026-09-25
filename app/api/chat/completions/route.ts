@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { query, ensureDatabaseSchema, ChatHistoryMessage } from '@/lib/db';
 import { runLLMAgentLoop, EffortLevel } from '@/lib/llm-core';
+import { generateChatTitle } from '@/lib/chat-title';
+import { startChatRun, streamChatRun, isChatProcessing } from '@/lib/chat-runs';
 import { randomUUID } from 'crypto';
 
 export const maxDuration = 600; // Allow long-running tool queries up to 10 minutes (600s)
@@ -74,6 +76,7 @@ export async function POST(request: Request) {
 
     // Ensure chat exists or create one
     let chatRow: any = null;
+    let isNewChat = false;
     if (conversation_id) {
       const convStr = String(conversation_id).trim();
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(convStr);
@@ -88,6 +91,7 @@ export async function POST(request: Request) {
     }
 
     if (!chatRow) {
+      isNewChat = true;
       const chatResult = await query(
         `INSERT INTO chats (user_id, title, model_id, effort_level, tools_enabled, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
@@ -102,7 +106,15 @@ export async function POST(request: Request) {
       );
       chatRow = chatResult.rows[0];
     } else {
-      // Update chat effort_level and tools_enabled if provided
+      if (isChatProcessing(chatRow.id)) {
+        return NextResponse.json(
+          { error: 'แชทนี้กำลังประมวลผลคำถามก่อนหน้าอยู่ กรุณารอให้เสร็จก่อน' },
+          { status: 409 }
+        );
+      }
+
+      // Remember the last selected effort_level / tools_enabled for this chat
+      // (the per-message effort_level is stored in chat_history)
       await query(
         `UPDATE chats
          SET effort_level = $2, tools_enabled = $3, updated_at = NOW()
@@ -125,7 +137,10 @@ export async function POST(request: Request) {
       tool_call_id: null,
       name: null,
       finish_reason: null,
-      token_count: 0,
+      effort_level,
+      input_tokens: null,
+      output_tokens: null,
+      total_tokens: null,
       reasoning_content: null,
       created_at: new Date().toISOString(),
     };
@@ -133,7 +148,7 @@ export async function POST(request: Request) {
     await query(
       `UPDATE chats
        SET chat_history = chat_history || $2::jsonb,
-           message_count = message_count + 1,
+           user_message_count = user_message_count + 1,
            updated_at = NOW()
        WHERE id = $1`,
       [chatId, JSON.stringify([userMsg])]
@@ -146,56 +161,44 @@ export async function POST(request: Request) {
     );
     const systemPrompt = chatData.rows[0]?.system_prompt || '';
 
-    // Create streaming response
-    const stream = new ReadableStream({
-      async start(controller) {
-        const encoder = new TextEncoder();
+    // Process the turn in the background so it survives the client disconnecting
+    // (refresh, closed tab, navigation). Clients re-attach via /api/chat/conversations/[id]/stream.
+    const run = startChatRun({ chatId, sessionId, userId: auth.session!.id }, async (emit, signal) => {
+      // Name new chats with an LLM-generated topic title, in parallel with the answer.
+      // The truncated first message stays as the title if generation fails.
+      const titlePromise = isNewChat
+        ? generateChatTitle(chatId, message.trim(), chatRow.title, modelInfo).then((title) => {
+            if (title) emit({ type: 'title', chat_id: chatId, session_id: sessionId, title });
+          })
+        : Promise.resolve();
 
-        const emit = (event: any) => {
-          try {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-          } catch {
-            // Stream might be closed by client
-          }
-        };
-
-        try {
-          await runLLMAgentLoop(
-            {
-              chatId,
-              sessionId,
-              message: message.trim(),
-              modelInfo,
-              effortLevel: effort_level as EffortLevel,
-              toolsEnabled: !!tools_enabled,
-              systemPrompt,
-              userId: auth.session!.id,
-            },
-            emit
-          );
-        } catch (err: any) {
-          console.error('LLM Loop error:', err);
-          emit({
-            type: 'error',
-            error: err.message || 'An error occurred during LLM reasoning loop',
-          });
-        } finally {
-          try {
-            controller.close();
-          } catch {
-            // Controller already closed
-          }
-        }
-      },
+      try {
+        await runLLMAgentLoop(
+          {
+            chatId,
+            sessionId,
+            message: message.trim(),
+            modelInfo,
+            effortLevel: effort_level as EffortLevel,
+            toolsEnabled: !!tools_enabled,
+            systemPrompt,
+            userId: auth.session!.id,
+            signal,
+          },
+          emit
+        );
+      } catch (err: any) {
+        console.error('LLM Loop error:', err);
+        emit({
+          type: 'error',
+          error: err.message || 'An error occurred during LLM reasoning loop',
+        });
+      } finally {
+        await titlePromise;
+      }
     });
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+    return streamChatRun(run);
   } catch (error: any) {
     console.error('Chat completion endpoint error:', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาดในการประมวลผล' }, { status: 500 });

@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
+  ChartColumn,
   Users,
   Brain,
   Shield,
@@ -128,8 +130,16 @@ export default function AdminConsoleModal({
             </button>
           </div>
 
-          {/* Right Close Button */}
+          {/* Right Actions */}
           <div className="flex items-center gap-1">
+            <Link
+              href="/admin/usage"
+              title="แดชบอร์ดการใช้งาน"
+              className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-500 dark:text-slate-400 hover:text-[#0055fa] dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
+            >
+              <ChartColumn className="w-4 h-4" />
+              <span className="hidden md:inline">Usage</span>
+            </Link>
             <button
               onClick={onClose}
               title="ปิดหน้าต่าง (Esc)"

@@ -150,6 +150,34 @@ body {
   animation: cursorBlink 0.9s infinite;
 }
 
+/* Sidebar title of a chat whose answer is still being generated: a dimmed band sweeps across */
+@keyframes titleShimmer {
+  from {
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+  }
+  to {
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
+  }
+}
+
+.animate-title-shimmer {
+  -webkit-mask-image: linear-gradient(90deg, #000 35%, rgba(0, 0, 0, 0.35) 50%, #000 65%);
+  mask-image: linear-gradient(90deg, #000 35%, rgba(0, 0, 0, 0.35) 50%, #000 65%);
+  -webkit-mask-size: 250% 100%;
+  mask-size: 250% 100%;
+  animation: titleShimmer 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-title-shimmer {
+    animation: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
 /* Glassmorphism */
 .glass-panel {
   background: rgba(255, 255, 255, 0.85);
@@ -207,6 +235,12 @@ body {
 .animate-popover {
   animation: popoverSpring 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: bottom left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-popover {
+    animation-duration: 0.01ms;
+  }
 }
 
 @keyframes modalBackdropFade {

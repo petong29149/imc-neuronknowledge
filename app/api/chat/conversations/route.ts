@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { query, ensureDatabaseSchema } from '@/lib/db';
+import { getProcessingChatIds } from '@/lib/chat-runs';
 
 async function requireAuth() {
   const session = await getSession();
@@ -29,7 +30,10 @@ export async function GET() {
         ch.effort_level,
         ch.tools_enabled,
         ch.is_archived,
-        ch.message_count,
+        ch.user_message_count,
+        ch.total_input_tokens,
+        ch.total_output_tokens,
+        ch.total_tokens,
         ch.created_at,
         ch.updated_at,
         m.display_name as model_name,
@@ -41,7 +45,10 @@ export async function GET() {
       [auth.session!.id]
     );
 
-    return NextResponse.json({ conversations: result.rows });
+    const processing = getProcessingChatIds(auth.session!.id);
+    const conversations = result.rows.map((row) => ({ ...row, is_processing: processing.has(row.id) }));
+
+    return NextResponse.json({ conversations });
   } catch (error: any) {
     console.error('Fetch conversations error:', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });
