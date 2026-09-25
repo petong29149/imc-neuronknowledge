@@ -52,7 +52,7 @@ function LoginForm() {
         if (redirectPath) {
           router.push(redirectPath);
         } else if (result.user.role === "admin") {
-          router.push("/admin");
+          router.push("/chat");
         } else {
           router.push("/");
         }
