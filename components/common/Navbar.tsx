@@ -32,11 +32,11 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navLinks = [
-    { label: "คลังความรู้", href: "#library" },
-    { label: "สถาปัตยกรรม", href: "#architecture" },
+  const navLinks = [    
     { label: "AI Harness", href: "#simulator", badge: "Demo" },
     { label: "จุดเด่นระบบ", href: "#pillars" },
+    { label: "สถาปัตยกรรม", href: "#architecture" },
+    { label: "คลังความรู้", href: "#library" }
   ];
 
   return (
