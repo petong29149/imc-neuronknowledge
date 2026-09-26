@@ -30,6 +30,7 @@ import {
   X,
   ExternalLink,
 } from "lucide-react";
+import Modal from "@/components/common/Modal";
 
 export interface MCPServer {
   id: number;
@@ -1221,456 +1222,462 @@ export default function AdminMCPSection() {
 
       {/* ═══════════ MODAL: ADD / EDIT SERVER ═══════════ */}
       {(modal?.type === "addServer" || modal?.type === "editServer") && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative w-full max-w-xl bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 flex items-center justify-center">
-                  <Server className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                    {modal.type === "addServer" ? "เพิ่ม MCP Server ใหม่" : "แก้ไขการตั้งค่า MCP Server"}
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    กำหนด Transport Protocol และ Parameter ในการเชื่อมต่อ
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setModal(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <form
-              onSubmit={modal.type === "addServer" ? handleCreateServer : handleUpdateServer}
-              className="flex-1 overflow-y-auto p-5 space-y-4 text-xs"
-            >
-              {/* Presets Selector (Add Server mode only) */}
-              {modal.type === "addServer" && (
-                <div>
-                  <label className="block text-slate-600 dark:text-slate-300 font-semibold mb-1">
-                    เทมเพลตเริ่มต้น (Presets)
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                    {SERVER_PRESETS.map((preset) => (
-                      <button
-                        key={preset.name}
-                        type="button"
-                        onClick={() => handlePresetSelect(preset)}
-                        className="text-left p-2 rounded-xl border border-slate-200 dark:border-white/10 hover:border-[#0055fa] dark:hover:border-[#0055fa] bg-slate-50/50 dark:bg-white/[0.02] hover:bg-blue-50/50 dark:hover:bg-blue-500/5 transition-all cursor-pointer group"
-                      >
-                        <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#0055fa] flex items-center justify-between">
-                          <span>{preset.name}</span>
-                          <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                            {preset.transport_type}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                          {preset.description}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Name */}
-              <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  ชื่อ MCP Server *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="เช่น Filesystem MCP หรือ Internal Tools Server"
-                  value={serverForm.name}
-                  onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white"
-                />
-              </div>
-
-              {/* Transport Type */}
-              <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  รูปแบบ Transport Protocol *
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setServerForm({ ...serverForm, transport_type: "streamable_http" })}
-                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
-                      serverForm.transport_type === "streamable_http"
-                        ? "border-[#0055fa] bg-blue-50/50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 font-semibold"
-                        : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Streamable HTTP</span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-normal mt-0.5">
-                      POST /mcp (Docker, Express)
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setServerForm({ ...serverForm, transport_type: "sse" })}
-                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
-                      serverForm.transport_type === "sse"
-                        ? "border-[#0055fa] bg-blue-50/50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 font-semibold"
-                        : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Globe className="w-3.5 h-3.5" />
-                      <span>SSE Remote</span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-normal mt-0.5">
-                      Server-Sent Events (/sse)
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setServerForm({ ...serverForm, transport_type: "stdio" })}
-                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
-                      serverForm.transport_type === "stdio"
-                        ? "border-[#0055fa] bg-blue-50/50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 font-semibold"
-                        : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Terminal className="w-3.5 h-3.5" />
-                      <span>Local Stdio</span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-normal mt-0.5">
-                      CLI Process (Stdin/Stdout)
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              {/* Conditional: SSE or Streamable HTTP URL */}
-              {(serverForm.transport_type === "sse" || serverForm.transport_type === "streamable_http") && (
-                <div>
-                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                    Server URL ({serverForm.transport_type === "streamable_http" ? "POST Endpoint" : "SSE Endpoint"}) *
-                  </label>
-                  <input
-                    type="url"
-                    required
-                    placeholder={
-                      serverForm.transport_type === "streamable_http"
-                        ? "http://localhost:8000/mcp หรือ http://127.0.0.1:8000/mcp"
-                        : "http://localhost:8000/sse หรือ https://your-domain.com/sse"
-                    }
-                    value={serverForm.url}
-                    onChange={(e) => setServerForm({ ...serverForm, url: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono"
-                  />
-                </div>
-              )}
-
-              {/* Conditional: Stdio Command & Args */}
-              {serverForm.transport_type === "stdio" && (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                      Command *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="เช่น npx, node, python, uvx"
-                      value={serverForm.command}
-                      onChange={(e) => setServerForm({ ...serverForm, command: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                      Arguments (คั่นด้วยวรรค หรือ JSON Array)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="-y @modelcontextprotocol/server-filesystem C:\Path"
-                      value={serverForm.args}
-                      onChange={(e) => setServerForm({ ...serverForm, args: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Environment Variables (Optional) */}
-              <div>
-                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                  Environment Variables (JSON)
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder='{"API_KEY": "secret_value"}'
-                  value={serverForm.env}
-                  onChange={(e) => setServerForm({ ...serverForm, env: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono text-[11px]"
-                />
-              </div>
-
-              {/* Custom HTTP Headers (Optional, e.g. Authorization) */}
-              {(serverForm.transport_type === "sse" || serverForm.transport_type === "streamable_http") && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-slate-700 dark:text-slate-300 font-semibold">
-                      Custom HTTP Headers (JSON)
-                    </label>
-                    <span className="text-[10px] text-slate-400">
-                      เช่น Authorization Bearer token หรือ API Key
-                    </span>
-                  </div>
-                  <textarea
-                    rows={2}
-                    placeholder='{"Authorization": "Bearer your_token_here", "X-API-Key": "secret"}'
-                    value={serverForm.headers}
-                    onChange={(e) => setServerForm({ ...serverForm, headers: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono text-[11px]"
-                  />
-                </div>
-              )}
-
-              {/* Checkboxes */}
-              <div className="flex items-center gap-4 pt-1">
-                <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
-                  <input
-                    type="checkbox"
-                    checked={serverForm.is_active}
-                    onChange={(e) =>
-                      setServerForm({ ...serverForm, is_active: e.target.checked })
-                    }
-                    className="rounded border-slate-300 text-[#0055fa] focus:ring-[#0055fa]"
-                  />
-                  <span>เปิดใช้งานเซิร์ฟเวอร์นี้ (Active)</span>
-                </label>
-
-                {modal.type === "addServer" && (
-                  <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
-                    <input
-                      type="checkbox"
-                      checked={serverForm.auto_sync}
-                      onChange={(e) =>
-                        setServerForm({ ...serverForm, auto_sync: e.target.checked })
-                      }
-                      className="rounded border-slate-300 text-[#0055fa] focus:ring-[#0055fa]"
-                    />
-                    <span>ทดสอบและค้นหา Tools ทันที</span>
-                  </label>
-                )}
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setModal(null)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-sm shadow-[#0055fa]/25 transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{modal.type === "addServer" ? "บันทึกและเชื่อมต่อ" : "บันทึกการแก้ไข"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════ MODAL: DELETE SERVER ═══════════ */}
-      {modal?.type === "deleteServer" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-5 h-5" />
+        <Modal
+          onClose={() => setModal(null)}
+          containerClassName="p-3 sm:p-4"
+          panelClassName="w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl"
+        >
+          {/* Modal Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 flex items-center justify-center">
+                <Server className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                  ยืนยันการลบ MCP Server
+                <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+                  {modal.type === "addServer" ? "เพิ่ม MCP Server ใหม่" : "แก้ไขการตั้งค่า MCP Server"}
                 </h3>
-                <p className="text-xs text-slate-400">
-                  การกระทำนี้ไม่สามารถย้อนกลับได้
+                <p className="text-[11px] text-slate-400">
+                  กำหนด Transport Protocol และ Parameter ในการเชื่อมต่อ
                 </p>
               </div>
             </div>
+            <button
+              onClick={() => setModal(null)}
+              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
 
-            <p className="text-xs text-slate-600 dark:text-slate-300">
-              คุณต้องการลบเซิร์ฟเวอร์{" "}
-              <strong className="text-slate-900 dark:text-white">
-                {modal.server.name}
-              </strong>{" "}
-              หรือไม่? ข้อมูล Tools ทั้งหมดที่เกี่ยวข้องจะถูกนำออกจากระบบ
-            </p>
+          {/* Modal Body */}
+          <form
+            onSubmit={modal.type === "addServer" ? handleCreateServer : handleUpdateServer}
+            className="flex-1 overflow-y-auto p-5 space-y-4 text-xs"
+          >
+            {/* Presets Selector (Add Server mode only) */}
+            {modal.type === "addServer" && (
+              <div>
+                <label className="block text-slate-600 dark:text-slate-300 font-semibold mb-1">
+                  เทมเพลตเริ่มต้น (Presets)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {SERVER_PRESETS.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => handlePresetSelect(preset)}
+                      className="text-left p-2 rounded-xl border border-slate-200 dark:border-white/10 hover:border-[#0055fa] dark:hover:border-[#0055fa] bg-slate-50/50 dark:bg-white/[0.02] hover:bg-blue-50/50 dark:hover:bg-blue-500/5 transition-all cursor-pointer group"
+                    >
+                      <div className="font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#0055fa] flex items-center justify-between">
+                        <span>{preset.name}</span>
+                        <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                          {preset.transport_type}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                        {preset.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            {/* Name */}
+            <div>
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                ชื่อ MCP Server *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="เช่น Filesystem MCP หรือ Internal Tools Server"
+                value={serverForm.name}
+                onChange={(e) => setServerForm({ ...serverForm, name: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white"
+              />
+            </div>
+
+            {/* Transport Type */}
+            <div>
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                รูปแบบ Transport Protocol *
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setServerForm({ ...serverForm, transport_type: "streamable_http" })}
+                  className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                    serverForm.transport_type === "streamable_http"
+                      ? "border-[#0055fa] bg-blue-50/50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 font-semibold"
+                      : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Streamable HTTP</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-normal mt-0.5">
+                    POST /mcp (Docker, Express)
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setServerForm({ ...serverForm, transport_type: "sse" })}
+                  className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                    serverForm.transport_type === "sse"
+                      ? "border-[#0055fa] bg-blue-50/50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 font-semibold"
+                      : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>SSE Remote</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-normal mt-0.5">
+                    Server-Sent Events (/sse)
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setServerForm({ ...serverForm, transport_type: "stdio" })}
+                  className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                    serverForm.transport_type === "stdio"
+                      ? "border-[#0055fa] bg-blue-50/50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 font-semibold"
+                      : "border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Terminal className="w-3.5 h-3.5" />
+                    <span>Local Stdio</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-normal mt-0.5">
+                    CLI Process (Stdin/Stdout)
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Conditional: SSE or Streamable HTTP URL */}
+            {(serverForm.transport_type === "sse" || serverForm.transport_type === "streamable_http") && (
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                  Server URL ({serverForm.transport_type === "streamable_http" ? "POST Endpoint" : "SSE Endpoint"}) *
+                </label>
+                <input
+                  type="url"
+                  required
+                  placeholder={
+                    serverForm.transport_type === "streamable_http"
+                      ? "http://localhost:8000/mcp หรือ http://127.0.0.1:8000/mcp"
+                      : "http://localhost:8000/sse หรือ https://your-domain.com/sse"
+                  }
+                  value={serverForm.url}
+                  onChange={(e) => setServerForm({ ...serverForm, url: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono"
+                />
+              </div>
+            )}
+
+            {/* Conditional: Stdio Command & Args */}
+            {serverForm.transport_type === "stdio" && (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    Command *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="เช่น npx, node, python, uvx"
+                    value={serverForm.command}
+                    onChange={(e) => setServerForm({ ...serverForm, command: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                    Arguments (คั่นด้วยวรรค หรือ JSON Array)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="-y @modelcontextprotocol/server-filesystem C:\Path"
+                    value={serverForm.args}
+                    onChange={(e) => setServerForm({ ...serverForm, args: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Environment Variables (Optional) */}
+            <div>
+              <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                Environment Variables (JSON)
+              </label>
+              <textarea
+                rows={2}
+                placeholder='{"API_KEY": "secret_value"}'
+                value={serverForm.env}
+                onChange={(e) => setServerForm({ ...serverForm, env: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono text-[11px]"
+              />
+            </div>
+
+            {/* Custom HTTP Headers (Optional, e.g. Authorization) */}
+            {(serverForm.transport_type === "sse" || serverForm.transport_type === "streamable_http") && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold">
+                    Custom HTTP Headers (JSON)
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    เช่น Authorization Bearer token หรือ API Key
+                  </span>
+                </div>
+                <textarea
+                  rows={2}
+                  placeholder='{"Authorization": "Bearer your_token_here", "X-API-Key": "secret"}'
+                  value={serverForm.headers}
+                  onChange={(e) => setServerForm({ ...serverForm, headers: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] text-slate-900 dark:text-white font-mono text-[11px]"
+                />
+              </div>
+            )}
+
+            {/* Checkboxes */}
+            <div className="flex items-center gap-4 pt-1">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
+                <input
+                  type="checkbox"
+                  checked={serverForm.is_active}
+                  onChange={(e) =>
+                    setServerForm({ ...serverForm, is_active: e.target.checked })
+                  }
+                  className="rounded border-slate-300 text-[#0055fa] focus:ring-[#0055fa]"
+                />
+                <span>เปิดใช้งานเซิร์ฟเวอร์นี้ (Active)</span>
+              </label>
+
+              {modal.type === "addServer" && (
+                <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={serverForm.auto_sync}
+                    onChange={(e) =>
+                      setServerForm({ ...serverForm, auto_sync: e.target.checked })
+                    }
+                    className="rounded border-slate-300 text-[#0055fa] focus:ring-[#0055fa]"
+                  />
+                  <span>ทดสอบและค้นหา Tools ทันที</span>
+                </label>
+              )}
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200 dark:border-white/10">
               <button
                 type="button"
                 onClick={() => setModal(null)}
-                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
               >
                 ยกเลิก
               </button>
               <button
-                type="button"
-                onClick={handleDeleteServer}
+                type="submit"
                 disabled={submitting}
-                className="px-3.5 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-2 text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-sm shadow-[#0055fa]/25 transition-all cursor-pointer flex items-center gap-1.5"
               >
                 {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                <span>ลบเซิร์ฟเวอร์</span>
+                <span>{modal.type === "addServer" ? "บันทึกและเชื่อมต่อ" : "บันทึกการแก้ไข"}</span>
               </button>
             </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* ═══════════ MODAL: DELETE SERVER ═══════════ */}
+      {modal?.type === "deleteServer" && (
+        <Modal
+          onClose={() => setModal(null)}
+          containerClassName="p-4"
+          panelClassName="w-full max-w-md p-5 space-y-4 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl"
+        >
+          <div className="flex items-center gap-3 text-rose-600">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                ยืนยันการลบ MCP Server
+              </h3>
+              <p className="text-xs text-slate-400">
+                การกระทำนี้ไม่สามารถย้อนกลับได้
+              </p>
+            </div>
           </div>
-        </div>
+
+          <p className="text-xs text-slate-600 dark:text-slate-300">
+            คุณต้องการลบเซิร์ฟเวอร์{" "}
+            <strong className="text-slate-900 dark:text-white">
+              {modal.server.name}
+            </strong>{" "}
+            หรือไม่? ข้อมูล Tools ทั้งหมดที่เกี่ยวข้องจะถูกนำออกจากระบบ
+          </p>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setModal(null)}
+              className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteServer}
+              disabled={submitting}
+              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              <span>ลบเซิร์ฟเวอร์</span>
+            </button>
+          </div>
+        </Modal>
       )}
 
       {/* ═══════════ MODAL: TEST RUN TOOL ═══════════ */}
       {modal?.type === "testTool" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="relative w-full max-w-2xl bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 flex items-center justify-center">
-                  <Play className="w-4 h-4 fill-[#0055fa]" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white font-mono">
-                      {modal.tool.name}
-                    </h3>
-                    <span className="px-1.5 py-0.2 text-[9px] rounded bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                      {modal.tool.server_name}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">
-                    ทดสอบเรียกใช้ Function Tool พร้อมส่งอาร์กิวเมนต์แบบสด
-                  </p>
-                </div>
+        <Modal
+          onClose={() => setModal(null)}
+          containerClassName="p-3 sm:p-4"
+          panelClassName="w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-white/10 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 flex items-center justify-center">
+                <Play className="w-4 h-4 fill-[#0055fa]" />
               </div>
-
-              <button
-                onClick={() => setModal(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
-              {/* Tool Description */}
-              {modal.tool.description && (
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300">
-                  <span className="font-semibold text-slate-800 dark:text-white mr-1.5">
-                    คำอธิบาย:
-                  </span>
-                  {modal.tool.description}
-                </div>
-              )}
-
-              {/* Arguments Editor */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="font-semibold text-slate-700 dark:text-slate-300">
-                    Arguments (JSON Object)
-                  </label>
-                  <span className="text-[10px] text-slate-400">
-                    ระบุค่าตาม Parameters ของ Schema
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white font-mono">
+                    {modal.tool.name}
+                  </h3>
+                  <span className="px-1.5 py-0.2 text-[9px] rounded bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                    {modal.tool.server_name}
                   </span>
                 </div>
-                <textarea
-                  rows={6}
-                  value={testToolArgs}
-                  onChange={(e) => setTestToolArgs(e.target.value)}
-                  className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] border border-slate-700 leading-relaxed"
-                />
+                <p className="text-[11px] text-slate-400">
+                  ทดสอบเรียกใช้ Function Tool พร้อมส่งอาร์กิวเมนต์แบบสด
+                </p>
               </div>
-
-              {/* Execution Result */}
-              {testToolResult && (
-                <div className="space-y-1.5 animate-in fade-in duration-150">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <span>ผลลัพธ์การรัน (Execution Result):</span>
-                      {testToolResult.is_error ? (
-                        <span className="text-[10px] text-rose-500 font-medium">
-                          (Error)
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-emerald-500 font-medium">
-                          (สำเร็จ: {testToolResult.execution_time_ms}ms)
-                        </span>
-                      )}
-                    </span>
-                  </div>
-
-                  <pre
-                    className={`p-3 rounded-xl font-mono text-[11px] leading-relaxed max-h-56 overflow-auto border ${
-                      testToolResult.is_error
-                        ? "bg-rose-950/30 text-rose-300 border-rose-800/40"
-                        : "bg-slate-900 text-slate-200 border-slate-800"
-                    }`}
-                  >
-                    {testToolResult.output ||
-                      testToolResult.error ||
-                      JSON.stringify(testToolResult, null, 2)}
-                  </pre>
-                </div>
-              )}
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-slate-200 dark:border-white/10 shrink-0 bg-slate-50 dark:bg-white/[0.02]">
-              <button
-                type="button"
-                onClick={() => setModal(null)}
-                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-              >
-                ปิดหน้าต่าง
-              </button>
-              <button
-                type="button"
-                onClick={handleRunToolTest}
-                disabled={testToolRunning}
-                className="px-4 py-1.5 text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-sm shadow-[#0055fa]/25 transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                {testToolRunning ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>กำลังประมวลผล...</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-3.5 h-3.5 fill-white" />
-                    <span>รันคำสั่งทดสอบ</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => setModal(null)}
+              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-        </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+            {/* Tool Description */}
+            {modal.tool.description && (
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300">
+                <span className="font-semibold text-slate-800 dark:text-white mr-1.5">
+                  คำอธิบาย:
+                </span>
+                {modal.tool.description}
+              </div>
+            )}
+
+            {/* Arguments Editor */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="font-semibold text-slate-700 dark:text-slate-300">
+                  Arguments (JSON Object)
+                </label>
+                <span className="text-[10px] text-slate-400">
+                  ระบุค่าตาม Parameters ของ Schema
+                </span>
+              </div>
+              <textarea
+                rows={6}
+                value={testToolArgs}
+                onChange={(e) => setTestToolArgs(e.target.value)}
+                className="w-full p-3 bg-slate-900 text-emerald-400 font-mono text-xs rounded-xl focus:outline-hidden focus:ring-1 focus:ring-[#0055fa] border border-slate-700 leading-relaxed"
+              />
+            </div>
+
+            {/* Execution Result */}
+            {testToolResult && (
+              <div className="space-y-1.5 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <span>ผลลัพธ์การรัน (Execution Result):</span>
+                    {testToolResult.is_error ? (
+                      <span className="text-[10px] text-rose-500 font-medium">
+                        (Error)
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-emerald-500 font-medium">
+                        (สำเร็จ: {testToolResult.execution_time_ms}ms)
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <pre
+                  className={`p-3 rounded-xl font-mono text-[11px] leading-relaxed max-h-56 overflow-auto border ${
+                    testToolResult.is_error
+                      ? "bg-rose-950/30 text-rose-300 border-rose-800/40"
+                      : "bg-slate-900 text-slate-200 border-slate-800"
+                  }`}
+                >
+                  {testToolResult.output ||
+                    testToolResult.error ||
+                    JSON.stringify(testToolResult, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-slate-200 dark:border-white/10 shrink-0 bg-slate-50 dark:bg-white/[0.02]">
+            <button
+              type="button"
+              onClick={() => setModal(null)}
+              className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+            >
+              ปิดหน้าต่าง
+            </button>
+            <button
+              type="button"
+              onClick={handleRunToolTest}
+              disabled={testToolRunning}
+              className="px-4 py-1.5 text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-sm shadow-[#0055fa]/25 transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              {testToolRunning ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>กำลังประมวลผล...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>รันคำสั่งทดสอบ</span>
+                </>
+              )}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );

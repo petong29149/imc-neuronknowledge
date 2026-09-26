@@ -74,7 +74,7 @@ export default function RegisterPage() {
 
         setTimeout(() => {
           if (result.user?.role === "admin") {
-            router.push("/admin");
+            router.push("/admin/dashboard");
           } else {
             router.push("/");
           }

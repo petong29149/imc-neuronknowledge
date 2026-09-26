@@ -26,6 +26,7 @@ import {
   Check,
   Sparkles,
 } from "lucide-react";
+import Modal from "@/components/common/Modal";
 
 // ────────────── Types ──────────────
 
@@ -1598,18 +1599,18 @@ function ModalOverlay({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
-        {children}
-      </div>
-    </div>
+    <Modal
+      onClose={onClose}
+      panelClassName="w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl"
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+      >
+        <X className="w-4 h-4" />
+      </button>
+      {children}
+    </Modal>
   );
 }
 

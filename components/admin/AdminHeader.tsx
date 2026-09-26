@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { BookOpen, Shield, Home, Sun, Moon, LogOut, Brain, Sparkles, Users } from "lucide-react";
+import { BookOpen, Shield, Home, Sun, Moon, LogOut, Sparkles } from "lucide-react";
 import { User } from "@/context/AuthContext";
 
 interface AdminHeaderProps {
@@ -10,8 +10,6 @@ interface AdminHeaderProps {
   theme: string | undefined;
   toggleTheme: () => void;
   logout: () => void;
-  activeTab?: "users" | "llm";
-  onTabChange?: (tab: "users" | "llm") => void;
 }
 
 export default function AdminHeader({
@@ -19,12 +17,10 @@ export default function AdminHeader({
   theme,
   toggleTheme,
   logout,
-  activeTab = "users",
-  onTabChange,
 }: AdminHeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#070b14]/85 backdrop-blur-xl border-b border-slate-200/80 dark:border-white/10 px-4 sm:px-8 py-3.5 shadow-xs">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <header className="py-3.5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0055fa] to-[#2670ff] text-white shadow-xs">

@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/login' || pathname === '/register') {
     if (sessionUser) {
       if (sessionUser.role === 'admin') {
-        return NextResponse.redirect(new URL('/admin', request.url));
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       } else {
         return NextResponse.redirect(new URL('/chat', request.url));
       }

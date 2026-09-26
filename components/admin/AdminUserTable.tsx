@@ -8,8 +8,15 @@ import {
   Trash2,
   RefreshCw,
   Mail,
+  Crown,
 } from "lucide-react";
 import { User } from "@/context/AuthContext";
+
+export interface UserGroupRef {
+  id: number;
+  name: string;
+  member_role: "owner" | "member";
+}
 
 export interface UserItem {
   id: number;
@@ -17,9 +24,14 @@ export interface UserItem {
   email: string;
   role: "admin" | "user";
   is_active: boolean;
+  /** Groups this user belongs to, aggregated by the users API. */
+  groups?: UserGroupRef[];
   created_at: string;
   updated_at: string;
 }
+
+/** How many group chips to render before collapsing into a "+N" pill. */
+const VISIBLE_GROUPS = 2;
 
 interface AdminUserTableProps {
   users: UserItem[];
@@ -48,6 +60,7 @@ export default function AdminUserTable({
             <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-50/60 dark:bg-white/5 text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               <th className="py-2 px-3 sm:px-4">ผู้ใช้งาน (User)</th>
               <th className="py-2 px-2.5 sm:px-3">บทบาท</th>
+              <th className="py-2 px-2.5 sm:px-3">กลุ่ม</th>
               <th className="py-2 px-2.5 sm:px-3">สถานะ</th>
               <th className="py-2 px-3 hidden md:table-cell">วันที่สร้าง</th>
               <th className="py-2 px-3 sm:px-4 text-right">การจัดการ</th>
@@ -56,14 +69,14 @@ export default function AdminUserTable({
           <tbody className="divide-y divide-slate-200/70 dark:divide-white/5 text-xs">
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-500">
+                <td colSpan={6} className="py-8 text-center text-slate-500">
                   <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-1.5 text-[#0055fa]" />
                   <span className="text-xs">กำลังโหลดข้อมูล...</span>
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-500">
+                <td colSpan={6} className="py-8 text-center text-slate-500">
                   <div className="max-w-xs mx-auto">
                     <Users className="w-8 h-8 mx-auto mb-1.5 text-slate-400 opacity-60" />
                     <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
@@ -79,6 +92,9 @@ export default function AdminUserTable({
               users.map((item) => {
                 const isSelf = currentUser?.id === item.id;
                 const initials = item.name ? item.name.charAt(0).toUpperCase() : "U";
+                const groups = item.groups ?? [];
+                const shownGroups = groups.slice(0, VISIBLE_GROUPS);
+                const hiddenGroups = groups.length - shownGroups.length;
 
                 return (
                   <tr
@@ -137,6 +153,36 @@ export default function AdminUserTable({
                           </>
                         )}
                       </button>
+                    </td>
+
+                    {/* Group chips */}
+                    <td className="py-2 sm:py-2.5 px-2.5 sm:px-3">
+                      {groups.length === 0 ? (
+                        <span className="text-[11px] text-slate-400">ไม่มีกลุ่ม</span>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-1 max-w-[180px]">
+                          {shownGroups.map((g) => (
+                            <span
+                              key={g.id}
+                              title={g.name}
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-300 border border-blue-200 dark:border-blue-500/20 max-w-[110px]"
+                            >
+                              {g.member_role === "owner" && (
+                                <Crown className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                              )}
+                              <span className="truncate">{g.name}</span>
+                            </span>
+                          ))}
+                          {hiddenGroups > 0 && (
+                            <span
+                              title={groups.map((g) => g.name).join(", ")}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-white/5 text-slate-500"
+                            >
+                              +{hiddenGroups}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     {/* Status Badge */}

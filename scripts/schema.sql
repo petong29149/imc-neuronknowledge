@@ -171,3 +171,55 @@ CREATE INDEX IF NOT EXISTS idx_chats_updated
 CREATE INDEX IF NOT EXISTS idx_chats_user
     ON public.chats USING btree
     (user_id ASC NULLS LAST);
+-----------------------------------
+----------- groups ----------------
+-----------------------------------
+CREATE TABLE IF NOT EXISTS public.groups
+(
+    id integer NOT NULL DEFAULT nextval('groups_id_seq'::regclass),
+    name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    description text COLLATE pg_catalog."default" DEFAULT ''::text,
+    is_active boolean NOT NULL DEFAULT true,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT groups_pkey PRIMARY KEY (id)
+);
+
+-- Case-insensitive uniqueness: "Sales" and "sales" are the same group
+CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_name_lower
+    ON public.groups USING btree
+    (lower(name::text) COLLATE pg_catalog."default" ASC NULLS LAST);
+
+CREATE INDEX IF NOT EXISTS idx_groups_active
+    ON public.groups USING btree
+    (is_active ASC NULLS LAST);
+
+-----------------------------------
+--------- group members -----------
+-----------------------------------
+CREATE TABLE IF NOT EXISTS public.group_members
+(
+    id integer NOT NULL DEFAULT nextval('group_members_id_seq'::regclass),
+    group_id integer NOT NULL,
+    user_id integer NOT NULL,
+    -- 'owner' can be treated as the group lead; everyone else is 'member'
+    member_role character varying(50) COLLATE pg_catalog."default" NOT NULL DEFAULT 'member'::character varying,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT group_members_pkey PRIMARY KEY (id),
+    CONSTRAINT group_members_group_id_fkey FOREIGN KEY (group_id)
+        REFERENCES public.groups (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT group_members_user_id_fkey FOREIGN KEY (user_id)
+        REFERENCES public.users (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_group_members_group_user
+    ON public.group_members USING btree
+    (group_id ASC NULLS LAST, user_id ASC NULLS LAST);
+
+CREATE INDEX IF NOT EXISTS idx_group_members_user
+    ON public.group_members USING btree
+    (user_id ASC NULLS LAST);

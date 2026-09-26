@@ -45,32 +45,45 @@ export async function GET(request: Request) {
 
     if (search) {
       conditions.push(
-        `(LOWER(name) LIKE $${paramIndex} OR LOWER(email) LIKE $${paramIndex})`
+        `(LOWER(u.name) LIKE $${paramIndex} OR LOWER(u.email) LIKE $${paramIndex})`
       );
       params.push(`%${search}%`);
       paramIndex++;
     }
 
     if (roleFilter === 'admin' || roleFilter === 'user') {
-      conditions.push(`role = $${paramIndex}`);
+      conditions.push(`u.role = $${paramIndex}`);
       params.push(roleFilter);
       paramIndex++;
     }
 
     if (statusFilter === 'active') {
-      conditions.push(`is_active = true`);
+      conditions.push(`u.is_active = true`);
     } else if (statusFilter === 'inactive') {
-      conditions.push(`is_active = false`);
+      conditions.push(`u.is_active = false`);
     }
 
     const whereClause =
       conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    // Group memberships come along so the table can show them without an extra
+    // round trip per row.
     const usersQuery = `
-      SELECT id, name, email, role, is_active, created_at, updated_at
-      FROM users
+      SELECT
+        u.id, u.name, u.email, u.role, u.is_active, u.created_at, u.updated_at,
+        COALESCE(
+          JSON_AGG(
+            JSON_BUILD_OBJECT('id', g.id, 'name', g.name, 'member_role', gm.member_role)
+            ORDER BY g.name ASC
+          ) FILTER (WHERE g.id IS NOT NULL),
+          '[]'
+        ) AS groups
+      FROM users u
+      LEFT JOIN group_members gm ON gm.user_id = u.id
+      LEFT JOIN groups g ON g.id = gm.group_id
       ${whereClause}
-      ORDER BY id ASC
+      GROUP BY u.id
+      ORDER BY u.id ASC
     `;
 
     const usersResult = await query(usersQuery, params);

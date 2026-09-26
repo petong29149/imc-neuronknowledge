@@ -271,3 +271,33 @@ body {
   animation: modalSpring 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: center center;
 }
+
+/*
+ * Admin routes keep the vertical scrollbar track reserved, so moving between
+ * tabs of differing height never shifts the centered layout sideways.
+ *
+ * `scrollbar-gutter: stable` does not work here: `html` is `overflow: visible`,
+ * so the viewport takes its overflow from `body`, and the gutter property does
+ * not come along with that propagation. `overflow-y: scroll` on `html` does
+ * reserve the track — but on its own it leaves `body` with `overflow-x: hidden`,
+ * which turns `body` into its own scroll container and breaks the sticky admin
+ * header. So the horizontal guard moves up to `html` for these routes.
+ */
+html.admin-stable-scrollbar {
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+html.admin-stable-scrollbar body {
+  overflow-x: visible;
+}
+
+/* Horizontally scrollable tab strips: scroll without the scrollbar rail */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

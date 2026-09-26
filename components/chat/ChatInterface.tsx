@@ -39,7 +39,6 @@ import {
   ArrowDown,
   Square,
 } from "lucide-react";
-import AdminConsoleModal from "@/components/admin/AdminConsoleModal";
 
 // ────────────── Types ──────────────
 
@@ -271,8 +270,6 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [effortPopoverOpen, setEffortPopoverOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-  const [adminModalTab, setAdminModalTab] = useState<"users" | "llm" | "mcp">("users");
   const [editingTitle, setEditingTitle] = useState<number | string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -1142,13 +1139,9 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
               <div className="absolute bottom-full left-2 right-2 mb-2 p-1.5 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl z-40 space-y-1 animate-popover">
                 {user?.role === "admin" && (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        setAdminModalTab("mcp");
-                        setIsAdminModalOpen(true);
-                      }}
+                    <Link
+                      href="/admin/mcp"
+                      onClick={() => setUserMenuOpen(false)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#0055fa] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer text-left"
                     >
                       <Server className="w-4 h-4 shrink-0" />
@@ -1158,33 +1151,25 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                           {activeToolsCount} Active
                         </span>
                       </div>
-                    </button>
+                    </Link>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        setAdminModalTab("llm");
-                        setIsAdminModalOpen(true);
-                      }}
+                    <Link
+                      href="/admin/llm"
+                      onClick={() => setUserMenuOpen(false)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer text-left"
                     >
                       <Brain className="w-4 h-4 shrink-0 text-indigo-500" />
                       <span>LLM & Models</span>
-                    </button>
+                    </Link>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        setAdminModalTab("users");
-                        setIsAdminModalOpen(true);
-                      }}
+                    <Link
+                      href="/admin/dashboard"
+                      onClick={() => setUserMenuOpen(false)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer text-left"
                     >
                       <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500" />
                       <span>Admin Console</span>
-                    </button>
+                    </Link>
                   </>
                 )}
 
@@ -1569,17 +1554,6 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
           </div>
         </div>
       </div>
-
-      {/* Admin Console Modal with Users, LLM, and MCP Tabs */}
-      <AdminConsoleModal
-        isOpen={isAdminModalOpen}
-        onClose={() => {
-          setIsAdminModalOpen(false);
-          fetchModels();
-          fetchActiveToolsCount();
-        }}
-        defaultTab={adminModalTab}
-      />
     </div>
   );
 }

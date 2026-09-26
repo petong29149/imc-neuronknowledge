@@ -86,6 +86,34 @@ export async function ensureDatabaseSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
+    -- User groups (a user can belong to many groups)
+    CREATE TABLE IF NOT EXISTS groups (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      description TEXT DEFAULT '',
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Case-insensitive uniqueness: "Sales" and "sales" are the same group
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_name_lower ON groups(LOWER(name));
+    CREATE INDEX IF NOT EXISTS idx_groups_active ON groups(is_active);
+
+    -- Membership join table between users and groups
+    CREATE TABLE IF NOT EXISTS group_members (
+      id SERIAL PRIMARY KEY,
+      group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      -- 'owner' can be treated as the group lead; everyone else is 'member'
+      member_role VARCHAR(50) NOT NULL DEFAULT 'member',
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_group_members_group_user
+      ON group_members(group_id, user_id);
+    CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id);
+
     -- LLM Connection configurations (OpenAI-compatible / Ollama endpoints)
     CREATE TABLE IF NOT EXISTS llm_connections (
       id SERIAL PRIMARY KEY,
