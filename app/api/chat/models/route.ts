@@ -24,6 +24,7 @@ export async function GET() {
         m.max_tokens,
         m.is_default,
         m.capabilities,
+        m.supports_tools,
         c.name as connection_name,
         c.provider as connection_provider
       FROM models m

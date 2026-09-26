@@ -1,4 +1,5 @@
 import { Pool, QueryResult, QueryResultRow } from 'pg';
+import { SAMPLE_SKILLS, DEFAULT_AGENT } from '@/lib/seed-data';
 
 // Global singleton pool for Next.js hot reload support in development
 declare global {
@@ -149,6 +150,9 @@ export async function ensureDatabaseSchema() {
     CREATE INDEX IF NOT EXISTS idx_models_active ON models(is_active);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_models_conn_model_id ON models(connection_id, model_id);
 
+    -- false = the model/endpoint does not accept tool calling; chats with it get no tools
+    ALTER TABLE models ADD COLUMN IF NOT EXISTS supports_tools BOOLEAN NOT NULL DEFAULT true;
+
     -- Unified chats table: each row = one chat session
     CREATE TABLE IF NOT EXISTS chats (
       id SERIAL PRIMARY KEY,
@@ -193,6 +197,7 @@ export async function ensureDatabaseSchema() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_chats_session_id ON chats(session_id);
     CREATE INDEX IF NOT EXISTS idx_chats_user ON chats(user_id);
     CREATE INDEX IF NOT EXISTS idx_chats_updated ON chats(updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_chats_user_updated ON chats(user_id, updated_at DESC, id DESC);
 
     -- MCP Servers table
     CREATE TABLE IF NOT EXISTS mcp_servers (
@@ -229,5 +234,138 @@ export async function ensureDatabaseSchema() {
     CREATE INDEX IF NOT EXISTS idx_mcp_tools_server ON mcp_tools(server_id);
     CREATE INDEX IF NOT EXISTS idx_mcp_tools_enabled ON mcp_tools(is_enabled);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_mcp_tools_server_name ON mcp_tools(server_id, name);
+
+    -- Skills: instruction packs the model loads on demand through the load_skill tool.
+    -- Only slug + description go into the system prompt; content is loaded when needed.
+    CREATE TABLE IF NOT EXISTS skills (
+      id SERIAL PRIMARY KEY,
+      slug VARCHAR(100) NOT NULL UNIQUE,
+      name VARCHAR(255) NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      content TEXT NOT NULL DEFAULT '',
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_skills_active ON skills(is_active);
+
+    -- AI agents: a persona prompt plus the skills and MCP tools it may use.
+    -- Built-in tools are available to every agent and are not bound here.
+    CREATE TABLE IF NOT EXISTS agents (
+      id SERIAL PRIMARY KEY,
+      slug VARCHAR(100) NOT NULL UNIQUE,
+      name VARCHAR(255) NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      icon VARCHAR(16) NOT NULL DEFAULT '🤖',
+      system_prompt TEXT NOT NULL DEFAULT '',
+      default_model_id INTEGER REFERENCES models(id) ON DELETE SET NULL,
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      is_default BOOLEAN NOT NULL DEFAULT false,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- At most one default agent (used for new chats with no agent picked, and legacy chats)
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_single_default ON agents(is_default) WHERE is_default;
+
+    CREATE TABLE IF NOT EXISTS agent_skills (
+      agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      skill_id INTEGER NOT NULL REFERENCES skills(id) ON DELETE CASCADE,
+      PRIMARY KEY (agent_id, skill_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS agent_tools (
+      agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      mcp_tool_id INTEGER NOT NULL REFERENCES mcp_tools(id) ON DELETE CASCADE,
+      PRIMARY KEY (agent_id, mcp_tool_id)
+    );
+
+    -- An agent with no rows here is open to everyone; otherwise only to members of these groups
+    CREATE TABLE IF NOT EXISTS agent_groups (
+      agent_id INTEGER NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      PRIMARY KEY (agent_id, group_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_agent_groups_group ON agent_groups(group_id);
+
+    -- The agent a chat was started with; fixed for the life of the chat
+    ALTER TABLE chats ADD COLUMN IF NOT EXISTS agent_id INTEGER REFERENCES agents(id) ON DELETE SET NULL;
+
+    -- Global key/value settings (persona_prompt, core_prompt)
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key VARCHAR(100) PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT '',
+      updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Every saved version of a prompt setting, for audit and rollback
+    CREATE TABLE IF NOT EXISTS prompt_revisions (
+      id SERIAL PRIMARY KEY,
+      key VARCHAR(100) NOT NULL,
+      value TEXT NOT NULL,
+      updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_prompt_revisions_key ON prompt_revisions(key, created_at DESC);
   `);
+
+  await seedDefaults();
+}
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __defaults_seeded: boolean | undefined;
+}
+
+/**
+ * Seed sample data once per process: the sample skills into an empty skills table,
+ * then a default agent bound to every skill and MCP tool into an empty agents table.
+ * Only empty tables are seeded, so rows an admin deletes stay deleted.
+ */
+async function seedDefaults() {
+  if (global.__defaults_seeded) return;
+  await query(
+    `INSERT INTO skills (slug, name, description, content)
+     SELECT s.slug, s.name, s.description, s.content
+     FROM jsonb_to_recordset($1::jsonb) AS s(slug TEXT, name TEXT, description TEXT, content TEXT)
+     WHERE NOT EXISTS (SELECT 1 FROM skills)
+     ON CONFLICT (slug) DO NOTHING`,
+    [JSON.stringify(SAMPLE_SKILLS)]
+  );
+
+  const agent = await query(
+    `INSERT INTO agents (slug, name, description, icon, system_prompt, is_default)
+     SELECT $1, $2, $3, $4, $5, true
+     WHERE NOT EXISTS (SELECT 1 FROM agents)
+     ON CONFLICT (slug) DO NOTHING
+     RETURNING id`,
+    [
+      DEFAULT_AGENT.slug,
+      DEFAULT_AGENT.name,
+      DEFAULT_AGENT.description,
+      DEFAULT_AGENT.icon,
+      DEFAULT_AGENT.system_prompt,
+    ]
+  );
+  if (agent.rows.length > 0) {
+    // Bind everything that exists today, so chats keep the skills and MCP tools
+    // they had before agents were introduced
+    await query(
+      `INSERT INTO agent_skills (agent_id, skill_id)
+       SELECT $1, id FROM skills ON CONFLICT DO NOTHING`,
+      [agent.rows[0].id]
+    );
+    await query(
+      `INSERT INTO agent_tools (agent_id, mcp_tool_id)
+       SELECT $1, id FROM mcp_tools ON CONFLICT DO NOTHING`,
+      [agent.rows[0].id]
+    );
+  }
+  global.__defaults_seeded = true;
 }

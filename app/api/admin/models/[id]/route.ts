@@ -33,7 +33,7 @@ export async function PUT(
     const allowedFields = [
       'connection_id', 'model_id', 'display_name', 'description',
       'context_length', 'max_tokens', 'temperature', 'top_p',
-      'is_active', 'is_default',
+      'is_active', 'is_default', 'supports_tools',
     ];
 
     for (const field of allowedFields) {

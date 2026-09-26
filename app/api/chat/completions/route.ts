@@ -4,6 +4,12 @@ import { query, ensureDatabaseSchema, ChatHistoryMessage } from '@/lib/db';
 import { runLLMAgentLoop, EffortLevel } from '@/lib/llm-core';
 import { generateChatTitle } from '@/lib/chat-title';
 import { startChatRun, streamChatRun, isChatProcessing } from '@/lib/chat-runs';
+import {
+  getAccessibleAgent,
+  getDefaultAgent,
+  getAgentRuntime,
+  type AgentRecord,
+} from '@/lib/agents';
 import { randomUUID } from 'crypto';
 
 export const maxDuration = 600; // Allow long-running tool queries up to 10 minutes (600s)
@@ -32,6 +38,7 @@ export async function POST(request: Request) {
       conversation_id,
       message,
       model_id,
+      agent_id,
       effort_level = 'medium',
       tools_enabled = true,
     } = body;
@@ -90,16 +97,49 @@ export async function POST(request: Request) {
       }
     }
 
+    // Resolve the agent: an existing chat keeps the agent it started with (chats from
+    // before agents existed adopt the default); a new chat uses the requested agent or
+    // the default. Access is checked every turn, so leaving a group revokes it.
+    const viewer = auth.session!;
+    let agent: AgentRecord | null;
+    if (chatRow?.agent_id) {
+      agent = await getAccessibleAgent(chatRow.agent_id, viewer);
+      if (!agent) {
+        return NextResponse.json(
+          { error: 'คุณไม่มีสิทธิ์ใช้ AI Agent ของแชทนี้แล้ว หรือ Agent ถูกปิดใช้งาน' },
+          { status: 403 }
+        );
+      }
+    } else if (!chatRow && agent_id != null && agent_id !== '') {
+      const requestedId = parseInt(String(agent_id), 10);
+      agent = isNaN(requestedId) ? null : await getAccessibleAgent(requestedId, viewer);
+      if (!agent) {
+        return NextResponse.json({ error: 'คุณไม่มีสิทธิ์ใช้ AI Agent นี้' }, { status: 403 });
+      }
+    } else {
+      agent = await getDefaultAgent(viewer);
+    }
+    if (!agent) {
+      return NextResponse.json(
+        { error: 'ไม่มี AI Agent ที่คุณใช้งานได้ กรุณาติดต่อผู้ดูแลระบบ' },
+        { status: 403 }
+      );
+    }
+    if (chatRow && !chatRow.agent_id) {
+      await query('UPDATE chats SET agent_id = $2 WHERE id = $1', [chatRow.id, agent.id]);
+    }
+
     if (!chatRow) {
       isNewChat = true;
       const chatResult = await query(
-        `INSERT INTO chats (user_id, title, model_id, effort_level, tools_enabled, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        `INSERT INTO chats (user_id, title, model_id, agent_id, effort_level, tools_enabled, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
          RETURNING *`,
         [
           auth.session!.id,
           message.substring(0, 80).trim() || 'New Chat',
           modelInfo.id,
+          agent.id,
           effort_level,
           tools_enabled,
         ]
@@ -160,6 +200,7 @@ export async function POST(request: Request) {
       [chatId]
     );
     const systemPrompt = chatData.rows[0]?.system_prompt || '';
+    const agentRuntime = await getAgentRuntime(agent);
 
     // Process the turn in the background so it survives the client disconnecting
     // (refresh, closed tab, navigation). Clients re-attach via /api/chat/conversations/[id]/stream.
@@ -182,6 +223,7 @@ export async function POST(request: Request) {
             effortLevel: effort_level as EffortLevel,
             toolsEnabled: !!tools_enabled,
             systemPrompt,
+            agent: agentRuntime,
             userId: auth.session!.id,
             signal,
           },

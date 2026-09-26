@@ -9,17 +9,57 @@ async function requireAuth() {
   return { error: null, status: 200, session };
 }
 
+const DEFAULT_PAGE_SIZE = 30;
+const MAX_PAGE_SIZE = 200;
+
 /**
  * GET /api/chat/conversations
- * List chat sessions for the current user
+ * List chat sessions for the current user, newest first, one page at a time.
+ *
+ * Query params:
+ *  - limit:  page size (default 30, max 200)
+ *  - cursor: `next_cursor` from the previous page (keyset on updated_at + id,
+ *            so chats updated meanwhile never cause duplicates or gaps)
+ *  - q:      case-insensitive title search
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await ensureDatabaseSchema();
     const auth = await requireAuth();
     if (auth.error) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const { searchParams } = new URL(request.url);
+    const limitParam = parseInt(searchParams.get('limit') || '', 10);
+    const limit = Number.isFinite(limitParam)
+      ? Math.min(Math.max(limitParam, 1), MAX_PAGE_SIZE)
+      : DEFAULT_PAGE_SIZE;
+    const search = (searchParams.get('q') || '').trim();
+    const cursor = searchParams.get('cursor');
+
+    const params: unknown[] = [auth.session!.id];
+    const conditions = ['ch.user_id = $1', 'ch.is_archived = false'];
+
+    if (search) {
+      // Escape LIKE wildcards so the search is literal
+      params.push(`%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`);
+      conditions.push(`ch.title ILIKE $${params.length}`);
+    }
+
+    if (cursor) {
+      const sep = cursor.lastIndexOf('_');
+      const cursorTime = cursor.slice(0, sep);
+      const cursorId = parseInt(cursor.slice(sep + 1), 10);
+      if (sep <= 0 || !Number.isFinite(cursorId)) {
+        return NextResponse.json({ error: 'Invalid cursor' }, { status: 400 });
+      }
+      params.push(cursorTime, cursorId);
+      conditions.push(`(ch.updated_at, ch.id) < ($${params.length - 1}::timestamptz, $${params.length})`);
+    }
+
+    // Fetch one extra row to know whether another page exists
+    params.push(limit + 1);
 
     const result = await query(
       `SELECT
@@ -36,19 +76,30 @@ export async function GET() {
         ch.total_tokens,
         ch.created_at,
         ch.updated_at,
+        ch.updated_at::text AS cursor_time,
         m.display_name as model_name,
         m.model_id as model_id_str
       FROM chats ch
       LEFT JOIN models m ON m.id = ch.model_id
-      WHERE ch.user_id = $1 AND ch.is_archived = false
-      ORDER BY ch.updated_at DESC`,
-      [auth.session!.id]
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY ch.updated_at DESC, ch.id DESC
+      LIMIT $${params.length}`,
+      params
     );
 
-    const processing = getProcessingChatIds(auth.session!.id);
-    const conversations = result.rows.map((row) => ({ ...row, is_processing: processing.has(row.id) }));
+    const hasMore = result.rows.length > limit;
+    const rows = hasMore ? result.rows.slice(0, limit) : result.rows;
+    const last = rows[rows.length - 1];
+    // cursor_time keeps full microsecond precision (a JS Date would truncate to ms)
+    const nextCursor = hasMore && last ? `${last.cursor_time}_${last.id}` : null;
 
-    return NextResponse.json({ conversations });
+    const processing = getProcessingChatIds(auth.session!.id);
+    const conversations = rows.map((row) => {
+      delete row.cursor_time;
+      return { ...row, is_processing: processing.has(row.id) };
+    });
+
+    return NextResponse.json({ conversations, next_cursor: nextCursor });
   } catch (error: any) {
     console.error('Fetch conversations error:', error);
     return NextResponse.json({ error: 'เกิดข้อผิดพลาด' }, { status: 500 });

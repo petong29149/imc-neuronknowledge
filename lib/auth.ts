@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET = new TextEncoder().encode(
+export const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'neuronknowledge_imc_secure_jwt_secret_key_2026_enterprise'
 );
 

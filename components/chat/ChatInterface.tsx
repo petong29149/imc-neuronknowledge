@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/app/theme-provider";
+import SettingsModal from "@/components/chat/SettingsModal";
+import UserGuideModal, { guideSeenKey } from "@/components/chat/UserGuideModal";
 import Link from "next/link";
 import {
   Send,
@@ -20,16 +21,15 @@ import {
   PanelLeftClose,
   PanelLeft,
   BookOpen,
-  Sun,
-  Moon,
   LogOut,
+  Settings,
+  Search,
   ShieldCheck,
   Pencil,
   Check,
   X,
   Copy,
   MoreHorizontal,
-  Server,
   Code,
   CheckCircle2,
   AlertCircle,
@@ -52,6 +52,20 @@ export interface ChatModel {
   is_default: boolean;
   connection_name: string;
   connection_provider: string;
+  /** false = no tools/skills are sent to this model */
+  supports_tools?: boolean;
+}
+
+export interface ChatAgent {
+  id: number;
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  default_model_id: number | null;
+  is_default: boolean;
+  skill_count: number;
+  tool_count: number;
 }
 
 export interface Conversation {
@@ -239,24 +253,45 @@ export function groupMessagesIntoTurns(messages: ChatMessage[]): ConversationTur
 
 // ────────────── Main Chat Component ──────────────
 
+// Sidebar history is loaded a page at a time as the user scrolls
+const CONVERSATION_PAGE_SIZE = 30;
+const CONVERSATION_MAX_REFRESH = 200;
+
 export default function ChatInterface({ initialSessionId }: { initialSessionId?: string }) {
   const router = useRouter();
   const params = useParams();
   const routeSessionId = (params?.id as string) || initialSessionId || null;
 
   const { user, loading: authLoading, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
 
   // Data
   const [models, setModels] = useState<ChatModel[]>([]);
+  const [agents, setAgents] = useState<ChatAgent[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationsCursor, setConversationsCursor] = useState<string | null>(null);
+  const [loadingMoreConversations, setLoadingMoreConversations] = useState(false);
+  const [chatSearchOpen, setChatSearchOpen] = useState(false);
+  const [chatSearch, setChatSearch] = useState("");
+  const [isSearchingChats, setIsSearchingChats] = useState(false);
+  // The query the current list was fetched with (chatSearch is the live, undebounced input)
+  const [activeChatSearch, setActiveChatSearch] = useState("");
+  // Refs so fetchConversations stays stable (it is a dependency of many callbacks)
+  const chatSearchRef = useRef("");
+  const loadedConversationsRef = useRef(0);
+  const loadingMoreRef = useRef(false);
+  // Bumped by every refresh; a response from an older request is discarded
+  const conversationsRequestRef = useRef(0);
+  const conversationListRef = useRef<HTMLDivElement>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [activeToolsCount, setActiveToolsCount] = useState<number>(0);
 
   // Settings & Identifiers for current chat
   const [activeSessionId, setActiveSessionId] = useState<string | null>(routeSessionId);
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
+  // Agent for a new chat; an open chat shows the agent it started with (fixed for its lifetime)
+  const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
+  const [conversationAgent, setConversationAgent] = useState<{ name: string; icon: string } | null>(null);
   const [effortLevel, setEffortLevel] = useState<EffortLevel>("medium");
 
   // Streaming Live Turn State
@@ -268,8 +303,13 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
   // UI state
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const [agentDropdownOpen, setAgentDropdownOpen] = useState(false);
   const [effortPopoverOpen, setEffortPopoverOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  // The guide opens by itself the first time a user reaches the chat page
+  const [guideAutoHandled, setGuideAutoHandled] = useState(false);
   const [editingTitle, setEditingTitle] = useState<number | string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -318,18 +358,6 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
 
   // ────── Data Fetching ──────
 
-  const fetchActiveToolsCount = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/mcp-tools?enabled=true");
-      if (res.ok) {
-        const data = await res.json();
-        setActiveToolsCount(data.tools?.length || 0);
-      }
-    } catch {
-      // silent
-    }
-  }, []);
-
   const fetchModels = useCallback(async () => {
     try {
       const res = await fetch("/api/chat/models");
@@ -349,17 +377,112 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
     }
   }, [selectedModelId]);
 
-  const fetchConversations = useCallback(async () => {
+  const fetchAgents = useCallback(async () => {
     try {
-      const res = await fetch("/api/chat/conversations");
+      const res = await fetch("/api/chat/agents");
       if (res.ok) {
         const data = await res.json();
-        setConversations(data.conversations || []);
+        const list: ChatAgent[] = data.agents || [];
+        setAgents(list);
+        // Pre-select the default agent (the API lists it first) for a new chat
+        setSelectedAgentId((prev) =>
+          prev ?? (list.find((a) => a.is_default) ?? list[0])?.id ?? null
+        );
       }
     } catch {
       // silent
     }
   }, []);
+
+  const conversationsUrl = (limit: number, cursor?: string) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (chatSearchRef.current) params.set("q", chatSearchRef.current);
+    if (cursor) params.set("cursor", cursor);
+    return `/api/chat/conversations?${params}`;
+  };
+
+  // Reload the list from the top, keeping as many rows as are already loaded so a
+  // refresh (new message, rename, polling) doesn't collapse a scrolled-down history.
+  const fetchConversations = useCallback(async () => {
+    const requestId = ++conversationsRequestRef.current;
+    const limit = Math.min(
+      Math.max(loadedConversationsRef.current, CONVERSATION_PAGE_SIZE),
+      CONVERSATION_MAX_REFRESH
+    );
+    try {
+      const res = await fetch(conversationsUrl(limit));
+      if (!res.ok) return;
+      const data = await res.json();
+      if (requestId !== conversationsRequestRef.current) return;
+      const list: Conversation[] = data.conversations || [];
+      loadedConversationsRef.current = list.length;
+      setConversations(list);
+      setConversationsCursor(data.next_cursor ?? null);
+    } catch {
+      // silent
+    } finally {
+      if (requestId === conversationsRequestRef.current) setIsSearchingChats(false);
+    }
+  }, []);
+
+  const loadMoreConversations = useCallback(async () => {
+    if (!conversationsCursor || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    setLoadingMoreConversations(true);
+    // A refresh or new search started meanwhile makes this page stale
+    const requestId = conversationsRequestRef.current;
+    try {
+      const res = await fetch(conversationsUrl(CONVERSATION_PAGE_SIZE, conversationsCursor));
+      if (!res.ok) return;
+      const data = await res.json();
+      if (requestId !== conversationsRequestRef.current) return;
+      const page: Conversation[] = data.conversations || [];
+      loadedConversationsRef.current += page.length;
+      setConversations((prev) => {
+        const seen = new Set(prev.map((c) => c.id));
+        return [...prev, ...page.filter((c) => !seen.has(c.id))];
+      });
+      setConversationsCursor(data.next_cursor ?? null);
+    } catch {
+      // silent
+    } finally {
+      loadingMoreRef.current = false;
+      setLoadingMoreConversations(false);
+    }
+  }, [conversationsCursor]);
+
+  // Load the next page when the end of the history list scrolls into view
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || !conversationsCursor) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) loadMoreConversations();
+      },
+      { root: conversationListRef.current, rootMargin: "200px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [conversationsCursor, loadMoreConversations]);
+
+  // Debounced server-side title search
+  useEffect(() => {
+    const q = chatSearch.trim();
+    if (q === chatSearchRef.current) return;
+    const timer = setTimeout(() => {
+      chatSearchRef.current = q;
+      setActiveChatSearch(q);
+      loadedConversationsRef.current = 0;
+      setIsSearchingChats(true);
+      fetchConversations();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [chatSearch, fetchConversations]);
+
+  const closeChatSearch = () => {
+    setChatSearch("");
+    setChatSearchOpen(false);
+  };
 
   // Mirrors a chat-run SSE stream (a fresh answer or a re-attached one) into the live turn,
   // then swaps in the saved messages once the turn is done.
@@ -702,6 +825,14 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
             if (data.conversation.effort_level) {
               setEffortLevel(data.conversation.effort_level);
             }
+            // Chats from before agents existed have none yet; the server assigns
+            // the default agent on their next message
+            setSelectedAgentId(data.conversation.agent_id ?? null);
+            setConversationAgent(
+              data.conversation.agent_name
+                ? { name: data.conversation.agent_name, icon: data.conversation.agent_icon || "🤖" }
+                : null
+            );
             if (data.conversation.is_processing) {
               resumeChatRun(data.conversation);
             }
@@ -743,13 +874,13 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
   useEffect(() => {
     if (!authLoading && user) {
       fetchModels();
+      fetchAgents();
       fetchConversations();
-      fetchActiveToolsCount();
     } else if (!authLoading && !user) {
       const currentPath = routeSessionId ? `/chat/${routeSessionId}` : "/chat";
       router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
     }
-  }, [authLoading, user, fetchModels, fetchConversations, fetchActiveToolsCount, router, routeSessionId]);
+  }, [authLoading, user, fetchModels, fetchAgents, fetchConversations, router, routeSessionId]);
 
   // Initial load for session if present in URL
   useEffect(() => {
@@ -792,6 +923,8 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
     currentLoadedRef.current = null;
     setActiveConversationId(null);
     setActiveSessionId(null);
+    setConversationAgent(null);
+    setSelectedAgentId((agents.find((a) => a.is_default) ?? agents[0])?.id ?? null);
     setLiveStreamingTurn(null);
     setMessages([]);
     setInputMessage("");
@@ -869,6 +1002,8 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
           conversation_id: currentConversationRef,
           message: userMessage,
           model_id: selectedModelId,
+          // Only read for a new chat; an existing chat keeps its agent
+          agent_id: selectedAgentId,
           effort_level: effortLevel,
           tools_enabled: true,
         }),
@@ -980,8 +1115,262 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
   };
 
   const selectedModel = models.find((m) => m.id === selectedModelId);
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+  // Once a chat exists its agent is fixed; the picker only works for a new chat
+  const agentLocked = Boolean(activeSessionId || activeConversationId);
+  const shownAgent = selectedAgent
+    ? { name: selectedAgent.name, icon: selectedAgent.icon }
+    : conversationAgent;
+
+  const handleSelectAgent = (agent: ChatAgent) => {
+    setSelectedAgentId(agent.id);
+    if (agent.default_model_id && models.some((m) => m.id === agent.default_model_id)) {
+      setSelectedModelId(agent.default_model_id);
+    }
+    setAgentDropdownOpen(false);
+  };
   const effortIndex = EFFORT_OPTIONS.findIndex((e) => e.id === effortLevel);
   const currentEffort = EFFORT_OPTIONS[effortIndex] || EFFORT_OPTIONS[1];
+
+  // Empty new chat: greeting and composer sit centered instead of docked at the bottom
+  const isWelcome = !(isChatLoading && messages.length === 0) && turns.length === 0 && !liveStreamingTurn;
+
+  const composer = (
+    <div className="relative max-w-3xl mx-auto">
+      {showJumpToBottom && (turns.length > 0 || liveStreamingTurn) && (
+        <button
+          type="button"
+          onClick={() => scrollToBottom("smooth")}
+          className="absolute -top-12 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white/95 dark:bg-[#0d1322]/95 border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-900/10 dark:shadow-black/30 hover:text-[#0055fa] dark:hover:text-blue-400 hover:border-[#0055fa]/30 transition-colors cursor-pointer"
+          title="เลื่อนไปข้อความล่าสุด"
+        >
+          {isStreaming && <span className="w-1.5 h-1.5 rounded-full bg-[#0055fa] animate-pulse" />}
+          <ArrowDown className="w-4 h-4" />
+          {isStreaming && <span>ติดตามคำตอบ</span>}
+        </button>
+      )}
+      <div className="relative bg-white dark:bg-white/[0.03] border border-slate-300/80 dark:border-white/10 rounded-2xl shadow-lg shadow-slate-900/8 dark:shadow-none focus-within:border-[#0055fa]/40 focus-within:ring-2 focus-within:ring-[#0055fa]/10 transition-all">
+        <textarea
+          ref={inputRef}
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={`ถาม ${shownAgent?.name || "AI"}... (Enter เพื่อส่ง, Shift+Enter ขึ้นบรรทัดใหม่)`}
+          rows={1}
+          className="block w-full px-4 pt-3 pb-1 text-sm bg-transparent outline-hidden resize-none max-h-40 placeholder:text-slate-500 dark:placeholder:text-slate-600"
+          style={{
+            height: "auto",
+            minHeight: "40px",
+          }}
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = "auto";
+            target.style.height = Math.min(target.scrollHeight, 160) + "px";
+          }}
+        />
+
+        {/* Composer Toolbar: Model, Effort, Send */}
+        <div className="flex items-center gap-0.5 px-2 pb-2">
+          {/* Model Selector */}
+          <div className="relative min-w-0">
+            <button
+              type="button"
+              onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+              aria-haspopup="listbox"
+              aria-expanded={modelDropdownOpen}
+              className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer ${
+                modelDropdownOpen ? "bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white" : ""
+              }`}
+              title="เลือก Model"
+            >
+              <Brain className="w-3.5 h-3.5 text-[#0055fa] shrink-0" />
+              <span className="max-w-[140px] sm:max-w-[220px] truncate">
+                {selectedModel?.display_name || "เลือก Model"}
+              </span>
+              <ChevronDown
+                className={`w-3 h-3 text-slate-400 shrink-0 transition-transform ${
+                  modelDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {modelDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setModelDropdownOpen(false)}
+                />
+                <div
+                  role="listbox"
+                  className="absolute bottom-full left-0 mb-2 w-72 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-40 py-1 max-h-64 overflow-y-auto animate-popover"
+                >
+                  {models.map((model) => (
+                    <button
+                      key={model.id}
+                      type="button"
+                      role="option"
+                      aria-selected={selectedModelId === model.id}
+                      onClick={() => {
+                        setSelectedModelId(model.id);
+                        setModelDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-start gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-left cursor-pointer ${
+                        selectedModelId === model.id ? "bg-[#0055fa]/5" : ""
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold truncate">
+                            {model.display_name}
+                          </span>
+                          {model.is_default && (
+                            <span className="px-1 text-[8px] font-bold bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded">
+                              DEF
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {model.connection_name}
+                          {model.supports_tools === false && " · ไม่รองรับ Tools/Skills"}
+                        </p>
+                      </div>
+                      {selectedModelId === model.id && (
+                        <Check className="w-3.5 h-3.5 text-[#0055fa] shrink-0 mt-0.5" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Effort Level: compact trigger, slider in popover */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setEffortPopoverOpen(!effortPopoverOpen)}
+              aria-haspopup="dialog"
+              aria-expanded={effortPopoverOpen}
+              className={`flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer ${
+                effortPopoverOpen ? "bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white" : ""
+              }`}
+              title="ระดับความลึกในการคิด (Effort Level)"
+            >
+              <span>{currentEffort.icon}</span>
+              <span>{currentEffort.label}</span>
+            </button>
+
+            {effortPopoverOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setEffortPopoverOpen(false)}
+                />
+                <div
+                  role="dialog"
+                  aria-label="Effort Level"
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape" || e.key === "Enter") {
+                      e.preventDefault();
+                      setEffortPopoverOpen(false);
+                      inputRef.current?.focus();
+                    }
+                  }}
+                  className="absolute bottom-full left-0 mb-2 w-60 p-3 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-40 animate-popover"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                      Reasoning Effort
+                    </span>
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      {currentEffort.icon} {currentEffort.label}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={EFFORT_OPTIONS.length - 1}
+                    step={1}
+                    value={effortIndex}
+                    onChange={(e) => setEffortLevel(EFFORT_OPTIONS[Number(e.target.value)].id)}
+                    aria-label="ระดับความลึกในการคิด (Effort Level)"
+                    aria-valuetext={`${currentEffort.label} Effort`}
+                    autoFocus
+                    className="w-full h-1.5 accent-[#0055fa] cursor-pointer"
+                  />
+                  <div className="grid grid-cols-3 mt-1 text-[10px]">
+                    {EFFORT_OPTIONS.map((opt, idx) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setEffortLevel(opt.id)}
+                        className={`cursor-pointer transition-colors ${
+                          idx === 0 ? "text-left" : idx === EFFORT_OPTIONS.length - 1 ? "text-right" : "text-center"
+                        } ${
+                          effortLevel === opt.id
+                            ? "font-semibold text-[#0055fa] dark:text-blue-400"
+                            : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 pt-2 border-t border-slate-100 dark:border-white/5 text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+                    {currentEffort.desc}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          {isStreaming ? (
+            <button
+              type="button"
+              onClick={handleStopResponse}
+              disabled={isStopping || !(activeSessionId || activeConversationId)}
+              className="ml-auto p-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              title={isStopping ? "กำลังหยุด..." : "หยุดการตอบ"}
+              aria-label="หยุดการตอบ"
+            >
+              {isStopping ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Square className="w-4 h-4 fill-current" />
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={handleSendMessage}
+              disabled={!inputMessage.trim()}
+              className="ml-auto p-1.5 rounded-lg bg-[#0055fa] text-white hover:bg-[#0046d1] disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+              title="ส่งข้อความ"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const hasSeenGuide = (userId: number) => {
+    try {
+      return localStorage.getItem(guideSeenKey(userId)) === "1";
+    } catch {
+      return true; // storage unavailable: don't nag on every visit
+    }
+  };
+  const showGuide = guideOpen || (!guideAutoHandled && !!user && !hasSeenGuide(user.id));
+  const closeGuide = () => {
+    try {
+      if (user) localStorage.setItem(guideSeenKey(user.id), "1");
+    } catch {
+      // ignore
+    }
+    setGuideOpen(false);
+    setGuideAutoHandled(true);
+  };
 
   // ────── Loading ──────
 
@@ -1016,13 +1405,29 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
               Neuron<span className="text-[#0055fa]">Chat</span>
             </span>
           </Link>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/5 transition-all cursor-pointer"
-            title="ซ่อนแถบด้านข้าง"
-          >
-            <PanelLeftClose className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() => (chatSearchOpen ? closeChatSearch() : setChatSearchOpen(true))}
+              aria-pressed={chatSearchOpen}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                chatSearchOpen
+                  ? "bg-slate-100 text-slate-900 dark:bg-white/5 dark:text-white"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/5"
+              }`}
+              title="ค้นหาแชท"
+              aria-label="ค้นหาแชท"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/5 transition-all cursor-pointer"
+              title="ซ่อนแถบด้านข้าง"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* New Chat Button */}
@@ -1034,14 +1439,56 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
             <Plus className="w-4 h-4" />
             New Chat
           </button>
+
+          {chatSearchOpen && (
+            <div className="relative mt-2 animate-popover">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+              <input
+                type="search"
+                autoFocus
+                value={chatSearch}
+                onChange={(e) => setChatSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") closeChatSearch();
+                }}
+                placeholder="ค้นหาชื่อแชท..."
+                aria-label="ค้นหาชื่อแชท"
+                className="w-full pl-8 pr-8 py-2 text-xs rounded-xl bg-slate-100 dark:bg-white/5 border border-transparent focus:border-[#0055fa]/40 focus:bg-white dark:focus:bg-white/[0.07] outline-hidden placeholder:text-slate-400 transition-colors [&::-webkit-search-cancel-button]:hidden"
+              />
+              {isSearchingChats ? (
+                <RefreshCw className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 animate-spin" />
+              ) : (
+                <button
+                  type="button"
+                  onClick={closeChatSearch}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  title="ปิดการค้นหา"
+                  aria-label="ปิดการค้นหา"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5">
+        <div ref={conversationListRef} className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5">
           {conversations.length === 0 ? (
             <div className="text-center py-8">
-              <MessageSquare className="w-8 h-8 text-slate-400 dark:text-slate-700 mx-auto mb-2" />
-              <p className="text-xs text-slate-500 dark:text-slate-600">ยังไม่มีประวัติแชท</p>
+              {activeChatSearch ? (
+                <>
+                  <Search className="w-8 h-8 text-slate-400 dark:text-slate-700 mx-auto mb-2" />
+                  <p className="text-xs text-slate-500 dark:text-slate-600 px-4 break-words">
+                    ไม่พบแชทที่ตรงกับ “{activeChatSearch}”
+                  </p>
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="w-8 h-8 text-slate-400 dark:text-slate-700 mx-auto mb-2" />
+                  <p className="text-xs text-slate-500 dark:text-slate-600">ยังไม่มีประวัติแชท</p>
+                </>
+              )}
             </div>
           ) : (
             conversations.map((conv) => {
@@ -1129,6 +1576,13 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
               );
             })
           )}
+
+          {/* Infinite scroll: reaching this sentinel loads the next page */}
+          {conversationsCursor && (
+            <div ref={loadMoreSentinelRef} className="flex justify-center py-3">
+              {loadingMoreConversations && <RefreshCw className="w-3.5 h-3.5 text-slate-400 animate-spin" />}
+            </div>
+          )}
         </div>
 
         {/* Sidebar Footer / User Menu */}
@@ -1138,52 +1592,38 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
               <div className="fixed inset-0 z-30" onClick={() => setUserMenuOpen(false)} />
               <div className="absolute bottom-full left-2 right-2 mb-2 p-1.5 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl z-40 space-y-1 animate-popover">
                 {user?.role === "admin" && (
-                  <>
-                    <Link
-                      href="/admin/mcp"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#0055fa] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer text-left"
-                    >
-                      <Server className="w-4 h-4 shrink-0" />
-                      <div className="flex-1 flex items-center justify-between">
-                        <span>MCP Servers Console</span>
-                        <span className="px-1.5 py-0.2 text-[9px] font-bold rounded bg-blue-100 dark:bg-blue-500/20 text-[#0055fa] dark:text-blue-300">
-                          {activeToolsCount} Active
-                        </span>
-                      </div>
-                    </Link>
-
-                    <Link
-                      href="/admin/llm"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer text-left"
-                    >
-                      <Brain className="w-4 h-4 shrink-0 text-indigo-500" />
-                      <span>LLM & Models</span>
-                    </Link>
-
-                    <Link
-                      href="/admin/dashboard"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer text-left"
-                    >
-                      <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500" />
-                      <span>Admin Console</span>
-                    </Link>
-                  </>
+                  <Link
+                    href="/admin/dashboard"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#0055fa] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer text-left"
+                  >
+                    <ShieldCheck className="w-4 h-4 shrink-0" />
+                    <span>Admin Console</span>
+                  </Link>
                 )}
 
                 <button
                   type="button"
-                  onClick={() => toggleTheme()}
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setSettingsOpen(true);
+                  }}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer text-left"
                 >
-                  {theme === "dark" ? (
-                    <Sun className="w-4 h-4 text-amber-400 shrink-0" />
-                  ) : (
-                    <Moon className="w-4 h-4 text-[#0055fa] shrink-0" />
-                  )}
-                  <span>ธีม: {theme === "dark" ? "โหมดมืด" : "โหมดสว่าง"}</span>
+                  <Settings className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                  <span>ตั้งค่า</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    setGuideOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer text-left"
+                >
+                  <BookOpen className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                  <span>คู่มือการใช้งาน</span>
                 </button>
 
                 <div className="pt-1 border-t border-slate-100 dark:border-white/5">
@@ -1228,15 +1668,92 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
 
       {/* ═══════════ MAIN CHAT AREA ═══════════ */}
       <div className="relative flex-1 flex flex-col min-w-0">
-        {!sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="absolute top-3 left-3 z-30 p-2 rounded-xl text-slate-500 dark:text-slate-400 bg-white/90 dark:bg-[#0a0f1e]/90 border border-slate-200 dark:border-white/10 shadow-sm hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-white/10 transition-all cursor-pointer"
-            title="เปิดแถบด้านข้าง"
-          >
-            <PanelLeft className="w-4 h-4" />
-          </button>
-        )}
+        {/* Top-left controls: sidebar toggle + agent selector */}
+        <div className="absolute top-3 left-3 z-30 flex items-center gap-2">
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-xl text-slate-500 dark:text-slate-400 bg-white/90 dark:bg-[#0a0f1e]/90 border border-slate-200 dark:border-white/10 shadow-sm hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-white/10 transition-all cursor-pointer"
+              title="เปิดแถบด้านข้าง"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Agent Selector: pick for a new chat, read-only once the chat exists */}
+          {shownAgent && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => !agentLocked && setAgentDropdownOpen(!agentDropdownOpen)}
+                disabled={agentLocked}
+                aria-haspopup="listbox"
+                aria-expanded={agentDropdownOpen}
+                className={`flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl text-sm font-semibold text-slate-800 dark:text-slate-100 bg-white/90 dark:bg-[#0a0f1e]/90 border shadow-sm backdrop-blur transition-all ${
+                  agentLocked
+                    ? "border-slate-200 dark:border-white/10 cursor-default"
+                    : "border-[#0055fa]/40 dark:border-blue-400/40 hover:border-[#0055fa] hover:bg-blue-50/60 dark:hover:bg-[#0055fa]/10 cursor-pointer"
+                } ${agentDropdownOpen ? "ring-2 ring-[#0055fa]/30" : ""}`}
+                title={agentLocked ? "AI Agent ของแชทนี้ (เปลี่ยนได้เมื่อเริ่มแชทใหม่)" : "เลือก AI Agent"}
+              >
+                {!agentLocked && (
+                  <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-[#0055fa] text-white">
+                    Agent
+                  </span>
+                )}
+                <span className="text-base leading-none">{shownAgent.icon}</span>
+                <span className="max-w-[160px] sm:max-w-[240px] truncate">{shownAgent.name}</span>
+                {!agentLocked && (
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform ${
+                      agentDropdownOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                )}
+              </button>
+
+              {agentDropdownOpen && !agentLocked && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setAgentDropdownOpen(false)} />
+                  <div
+                    role="listbox"
+                    className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-40 py-1 max-h-80 overflow-y-auto animate-popover"
+                  >
+                    <div className="px-3 pt-1.5 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                      เลือก AI Agent
+                    </div>
+                    {agents.map((agent) => (
+                      <button
+                        key={agent.id}
+                        type="button"
+                        role="option"
+                        aria-selected={selectedAgentId === agent.id}
+                        onClick={() => handleSelectAgent(agent)}
+                        className={`w-full flex items-start gap-2.5 px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-left cursor-pointer ${
+                          selectedAgentId === agent.id ? "bg-[#0055fa]/5" : ""
+                        }`}
+                      >
+                        <span className="text-lg leading-none mt-0.5">{agent.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-semibold truncate">{agent.name}</div>
+                          {agent.description && (
+                            <p className="text-[10px] text-slate-400 line-clamp-2">{agent.description}</p>
+                          )}
+                          <p className="text-[10px] text-slate-400 mt-0.5">
+                            {agent.skill_count} Skills · {agent.tool_count} MCP Tools
+                          </p>
+                        </div>
+                        {selectedAgentId === agent.id && (
+                          <Check className="w-3.5 h-3.5 text-[#0055fa] shrink-0 mt-0.5" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
 
         {/* Messages Scroll Area */}
@@ -1245,7 +1762,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
           onScroll={handleMessagesScroll}
           onWheel={() => (autoScrollingRef.current = false)}
           onTouchStart={() => (autoScrollingRef.current = false)}
-          className="flex-1 overflow-y-auto relative"
+          className="flex-1 basis-0 min-h-0 flex flex-col overflow-y-auto relative"
         >
           {/* Subtle top progress bar when loading chat */}
           {isChatLoading && (
@@ -1253,64 +1770,79 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
           )}
 
           {isChatLoading && messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center">
               <div className="flex flex-col items-center gap-2">
                 <RefreshCw className="w-6 h-6 text-[#0055fa] animate-spin" />
                 <span className="text-xs text-slate-400">กำลังโหลดบทสนทนา...</span>
               </div>
             </div>
-          ) : turns.length === 0 && !liveStreamingTurn ? (
-            /* Welcome Screen */
-            <div className="flex flex-col items-center justify-center h-full px-4">
-              <div className="text-center max-w-lg">
-                <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-tr from-[#0055fa] to-violet-500 text-white flex items-center justify-center shadow-lg shadow-[#0055fa]/20">
-                  <Sparkles className="w-8 h-8" />
-                </div>
-                <h2 className="text-2xl font-bold tracking-tight mb-2">
-                  สวัสดี, {user?.name?.split(" ")[0] || "User"} 👋
-                </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-                  NeuronKnowledge AI พร้อม MCP Tools calling และ Adaptive Reasoning Loops
-                </p>
+          ) : isWelcome ? (
+            /* Welcome greeting: pinned just above the composer (mt-auto keeps it scrollable if tall) */
+            <div className="mt-auto w-full px-4 pt-16 pb-6">
+                <div className={`text-center mx-auto ${agents.length > 1 ? "max-w-2xl" : "max-w-lg"}`}>
+                  <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-[#0055fa] to-violet-500 text-white flex items-center justify-center shadow-lg shadow-[#0055fa]/20 text-2xl">
+                    {selectedAgent ? selectedAgent.icon : <Sparkles className="w-7 h-7" />}
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight mb-2">
+                    สวัสดี, {user?.name?.split(" ")[0] || "User"} 👋
+                  </h2>
 
-                {/* Features pill list */}
-                <div className="flex items-center justify-center gap-2 mb-6 flex-wrap">
-                  <span className="px-2.5 py-1 text-xs rounded-full bg-blue-50 dark:bg-blue-500/10 text-[#0055fa] dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 font-medium">
-                    ⚡ {currentEffort.label} Effort
-                  </span>
-                  <span className="px-2.5 py-1 text-xs rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 font-medium">
-                    🛠️ {activeToolsCount} MCP Tools Active
-                  </span>
-                  <span className="px-2.5 py-1 text-xs rounded-full bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20 font-medium">
-                    🔄 Multi-step Tool Loops
-                  </span>
+                  {agents.length > 1 ? (
+                    /* Agent picker cards: the first choice a user makes in a new chat */
+                    <div>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                        เลือกผู้ช่วย AI ที่เหมาะกับงานของคุณ
+                      </p>
+                      <div role="radiogroup" aria-label="เลือก AI Agent" className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+                        {agents.map((agent) => {
+                          const active = selectedAgentId === agent.id;
+                          return (
+                            <button
+                              key={agent.id}
+                              type="button"
+                              role="radio"
+                              aria-checked={active}
+                              onClick={() => {
+                                handleSelectAgent(agent);
+                                inputRef.current?.focus();
+                              }}
+                              className={`relative flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                                active
+                                  ? "border-[#0055fa] bg-blue-50/70 dark:bg-[#0055fa]/10 ring-2 ring-[#0055fa]/20 shadow-sm"
+                                  : "border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] hover:border-[#0055fa]/40 hover:bg-blue-50/40 dark:hover:bg-[#0055fa]/5"
+                              }`}
+                            >
+                              <span className="text-2xl leading-none mt-0.5">{agent.icon}</span>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-semibold text-slate-900 dark:text-white truncate pr-5">
+                                  {agent.name}
+                                </div>
+                                {agent.description && (
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5">
+                                    {agent.description}
+                                  </p>
+                                )}
+                              </div>
+                              {active && (
+                                <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-[#0055fa] text-white flex items-center justify-center">
+                                  <Check className="w-2.5 h-2.5" />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {selectedAgent?.description || "วันนี้ให้ช่วยอะไรดี?"}
+                    </p>
+                  )}
                 </div>
-
-                {/* Quick suggestions */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-md mx-auto">
-                  {[
-                    "ช่วยค้นหาข้อมูลและสรุปเอกสาร",
-                    "วิเคราะห์โค้ดและทดสอบ Function",
-                    "คำนวณและประมวลผลข้อมูล",
-                    "แนะนำกลยุทธ์ Knowledge Management",
-                  ].map((suggestion, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setInputMessage(suggestion);
-                        inputRef.current?.focus();
-                      }}
-                      className="px-4 py-2.5 text-xs text-left font-medium text-slate-600 dark:text-slate-400 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl hover:border-[#0055fa]/30 hover:bg-blue-50/50 dark:hover:bg-[#0055fa]/5 transition-all cursor-pointer"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           ) : (
             /* Unified Chat Turns Area */
-            <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+            <div className="w-full max-w-3xl mx-auto px-4 pt-16 pb-6 space-y-6 animate-chat-enter">
               {turns.map((turn) =>
                 turn.role === "user" ? (
                   <UserBubble key={turn.id} turn={turn} userName={user?.name || "User"} />
@@ -1335,225 +1867,55 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
           )}
         </div>
 
-        {/* Input Box Area */}
-        <div className="shrink-0 px-4 pb-3 pt-1">
-          <div className="relative max-w-3xl mx-auto">
-            {showJumpToBottom && (turns.length > 0 || liveStreamingTurn) && (
-              <button
-                type="button"
-                onClick={() => scrollToBottom("smooth")}
-                className="absolute -top-12 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white/95 dark:bg-[#0d1322]/95 border border-slate-200 dark:border-white/10 shadow-lg shadow-slate-900/10 dark:shadow-black/30 hover:text-[#0055fa] dark:hover:text-blue-400 hover:border-[#0055fa]/30 transition-colors cursor-pointer"
-                title="เลื่อนไปข้อความล่าสุด"
-              >
-                {isStreaming && <span className="w-1.5 h-1.5 rounded-full bg-[#0055fa] animate-pulse" />}
-                <ArrowDown className="w-4 h-4" />
-                {isStreaming && <span>ติดตามคำตอบ</span>}
-              </button>
-            )}
-            <div className="relative bg-white dark:bg-white/[0.03] border border-slate-300/80 dark:border-white/10 rounded-2xl shadow-lg shadow-slate-900/8 dark:shadow-none focus-within:border-[#0055fa]/40 focus-within:ring-2 focus-within:ring-[#0055fa]/10 transition-all">
-              <textarea
-                ref={inputRef}
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="พิมพ์คำสั่งหรือข้อความ... (Enter เพื่อส่ง, Shift+Enter ขึ้นบรรทัดใหม่)"
-                rows={1}
-                className="block w-full px-4 pt-3 pb-1 text-sm bg-transparent outline-hidden resize-none max-h-40 placeholder:text-slate-500 dark:placeholder:text-slate-600"
-                style={{
-                  height: "auto",
-                  minHeight: "40px",
-                }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = "auto";
-                  target.style.height = Math.min(target.scrollHeight, 160) + "px";
-                }}
-              />
+        {/* Input Box Area: one persistent composer. On a new chat the spacer below grows to match the
+            messages area so the composer sits centered; after the first message the spacer collapses
+            and the composer glides down to the bottom (flex-grow transition). */}
+        <div className="shrink-0 px-4 pb-3 pt-1">{composer}</div>
 
-              {/* Composer Toolbar: Model, Effort, Send */}
-              <div className="flex items-center gap-0.5 px-2 pb-2">
-                {/* Model Selector */}
-                <div className="relative min-w-0">
+        <div
+          aria-hidden={!isWelcome}
+          className={`basis-0 min-h-0 overflow-y-auto px-4 transition-[flex-grow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+            isWelcome ? "grow" : "grow-0"
+          }`}
+        >
+          {isWelcome && (
+            /* Recommended prompts */
+            <ul className="max-w-3xl mx-auto divide-y divide-slate-200/70 dark:divide-white/5">
+              {[
+                "ช่วยค้นหาข้อมูลและสรุปเอกสาร",
+                "วิเคราะห์โค้ดและทดสอบ Function",
+                "คำนวณและประมวลผลข้อมูล",
+                "แนะนำกลยุทธ์ Knowledge Management",
+              ].map((suggestion) => (
+                <li key={suggestion}>
                   <button
                     type="button"
-                    onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-                    aria-haspopup="listbox"
-                    aria-expanded={modelDropdownOpen}
-                    className={`flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer ${
-                      modelDropdownOpen ? "bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white" : ""
-                    }`}
-                    title="เลือก Model"
+                    onClick={() => {
+                      setInputMessage(suggestion);
+                      inputRef.current?.focus();
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left text-slate-600 dark:text-slate-400 rounded-lg hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/5 transition-colors cursor-pointer"
                   >
-                    <Brain className="w-3.5 h-3.5 text-[#0055fa] shrink-0" />
-                    <span className="max-w-[140px] sm:max-w-[220px] truncate">
-                      {selectedModel?.display_name || "เลือก Model"}
-                    </span>
-                    <ChevronDown
-                      className={`w-3 h-3 text-slate-400 shrink-0 transition-transform ${
-                        modelDropdownOpen ? "rotate-180" : ""
-                      }`}
-                    />
+                    <MessageSquare className="w-4 h-4 shrink-0 text-slate-400" />
+                    <span className="truncate">{suggestion}</span>
                   </button>
-
-                  {modelDropdownOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-30"
-                        onClick={() => setModelDropdownOpen(false)}
-                      />
-                      <div
-                        role="listbox"
-                        className="absolute bottom-full left-0 mb-2 w-72 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-40 py-1 max-h-64 overflow-y-auto animate-popover"
-                      >
-                        {models.map((model) => (
-                          <button
-                            key={model.id}
-                            type="button"
-                            role="option"
-                            aria-selected={selectedModelId === model.id}
-                            onClick={() => {
-                              setSelectedModelId(model.id);
-                              setModelDropdownOpen(false);
-                            }}
-                            className={`w-full flex items-start gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-left cursor-pointer ${
-                              selectedModelId === model.id ? "bg-[#0055fa]/5" : ""
-                            }`}
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-semibold truncate">
-                                  {model.display_name}
-                                </span>
-                                {model.is_default && (
-                                  <span className="px-1 text-[8px] font-bold bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded">
-                                    DEF
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-slate-400 truncate">
-                                {model.connection_name}
-                              </p>
-                            </div>
-                            {selectedModelId === model.id && (
-                              <Check className="w-3.5 h-3.5 text-[#0055fa] shrink-0 mt-0.5" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Effort Level: compact trigger, slider in popover */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setEffortPopoverOpen(!effortPopoverOpen)}
-                    aria-haspopup="dialog"
-                    aria-expanded={effortPopoverOpen}
-                    className={`flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors cursor-pointer ${
-                      effortPopoverOpen ? "bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-white" : ""
-                    }`}
-                    title="ระดับความลึกในการคิด (Effort Level)"
-                  >
-                    <span>{currentEffort.icon}</span>
-                    <span>{currentEffort.label}</span>
-                  </button>
-
-                  {effortPopoverOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-30"
-                        onClick={() => setEffortPopoverOpen(false)}
-                      />
-                      <div
-                        role="dialog"
-                        aria-label="Effort Level"
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape" || e.key === "Enter") {
-                            e.preventDefault();
-                            setEffortPopoverOpen(false);
-                            inputRef.current?.focus();
-                          }
-                        }}
-                        className="absolute bottom-full left-0 mb-2 w-60 p-3 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-40 animate-popover"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                            Reasoning Effort
-                          </span>
-                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                            {currentEffort.icon} {currentEffort.label}
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min={0}
-                          max={EFFORT_OPTIONS.length - 1}
-                          step={1}
-                          value={effortIndex}
-                          onChange={(e) => setEffortLevel(EFFORT_OPTIONS[Number(e.target.value)].id)}
-                          aria-label="ระดับความลึกในการคิด (Effort Level)"
-                          aria-valuetext={`${currentEffort.label} Effort`}
-                          autoFocus
-                          className="w-full h-1.5 accent-[#0055fa] cursor-pointer"
-                        />
-                        <div className="grid grid-cols-3 mt-1 text-[10px]">
-                          {EFFORT_OPTIONS.map((opt, idx) => (
-                            <button
-                              key={opt.id}
-                              type="button"
-                              onClick={() => setEffortLevel(opt.id)}
-                              className={`cursor-pointer transition-colors ${
-                                idx === 0 ? "text-left" : idx === EFFORT_OPTIONS.length - 1 ? "text-right" : "text-center"
-                              } ${
-                                effortLevel === opt.id
-                                  ? "font-semibold text-[#0055fa] dark:text-blue-400"
-                                  : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                              }`}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                        <p className="mt-2 pt-2 border-t border-slate-100 dark:border-white/5 text-[11px] leading-snug text-slate-500 dark:text-slate-400">
-                          {currentEffort.desc}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {isStreaming ? (
-                  <button
-                    type="button"
-                    onClick={handleStopResponse}
-                    disabled={isStopping || !(activeSessionId || activeConversationId)}
-                    className="ml-auto p-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                    title={isStopping ? "กำลังหยุด..." : "หยุดการตอบ"}
-                    aria-label="หยุดการตอบ"
-                  >
-                    {isStopping ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Square className="w-4 h-4 fill-current" />
-                    )}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!inputMessage.trim()}
-                    className="ml-auto p-1.5 rounded-lg bg-[#0055fa] text-white hover:bg-[#0046d1] disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-                    title="ส่งข้อความ"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
+
+      {settingsOpen && (
+        <SettingsModal
+          onClose={() => setSettingsOpen(false)}
+          onOpenGuide={() => {
+            setSettingsOpen(false);
+            setGuideOpen(true);
+          }}
+        />
+      )}
+      {showGuide && !settingsOpen && <UserGuideModal onClose={closeGuide} />}
     </div>
   );
 }

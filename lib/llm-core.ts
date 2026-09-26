@@ -1,6 +1,8 @@
 import { query, ChatHistoryMessage } from '@/lib/db';
 import { resolveEndpointUrl, getLLMHeaders } from '@/lib/llm-utils';
-import { getEnabledMCPTools, executeMCPTool, OpenAIToolDefinition } from '@/lib/mcp';
+import type { AgentRuntime } from '@/lib/agents';
+import { executeTool } from '@/lib/tool-executor';
+import { prepareTurnContext } from '@/lib/turn-context';
 import { randomUUID } from 'crypto';
 
 export type EffortLevel = 'low' | 'medium' | 'high';
@@ -20,10 +22,15 @@ export interface LLMCoreConfig {
     top_p?: number;
     max_tokens?: number;
     context_length?: number;
+    /** false = never send tools to this model (models.supports_tools) */
+    supports_tools?: boolean;
   };
   effortLevel?: EffortLevel;
   toolsEnabled?: boolean;
+  /** Per-chat prompt (chats.system_prompt) */
   systemPrompt?: string;
+  /** The chat's agent: scopes skills and MCP tools. null = no agent (all active skills and MCP tools) */
+  agent?: AgentRuntime | null;
   userId?: number;
   /** Aborted when the user presses Stop: the turn ends early and keeps what was generated so far */
   signal?: AbortSignal;
@@ -66,6 +73,25 @@ export const STOPPED_FINISH_REASON = 'stopped';
 
 const STOPPED_TOOL_RESULT = 'Tool execution was cancelled because the user stopped the response.';
 const STOPPED_EMPTY_ANSWER = 'หยุดการตอบก่อนที่จะได้คำตอบ';
+
+/** Error text of a 4xx response that means "this model/endpoint does not accept tools" */
+const TOOLS_REJECTED_PATTERN = /tool|function[ _]?call/i;
+
+/**
+ * History without tool-calling turns, for a model that does not accept them:
+ * tool results are dropped and assistant tool-call steps keep only their text.
+ */
+function withoutToolMessages(messages: any[]): any[] {
+  return messages
+    .filter((m) => m.role !== 'tool')
+    .map((m) => {
+      if (!m.tool_calls) return m;
+      const rest = { ...m };
+      delete rest.tool_calls;
+      return rest;
+    })
+    .filter((m) => m.role !== 'assistant' || (m.content && String(m.content).trim()));
+}
 
 /**
  * Resolves with the promise's value, or with `null` as soon as the signal aborts.
@@ -223,7 +249,7 @@ function buildMessage(overrides: Partial<ChatHistoryMessage> & { role: string; c
 }
 
 /**
- * Executes the LLM orchestration loop with MCP tool calling, loop iterations,
+ * Executes the LLM orchestration loop with built-in + MCP tool calling, loop iterations,
  * and effort levels. Streams progress and outputs in real-time.
  */
 export async function runLLMAgentLoop(
@@ -252,39 +278,26 @@ export async function runLLMAgentLoop(
     max_steps: effortConfig.maxToolLoops,
   });
 
-  // Load enabled MCP tools if tool calling is active
-  let tools: OpenAIToolDefinition[] = [];
-  if (toolsEnabled) {
-    try {
-      const toolData = await getEnabledMCPTools();
-      tools = toolData.tools;
-    } catch (toolErr) {
-      console.error('Error fetching MCP tools:', toolErr);
-    }
-  }
+  // Models marked as not supporting tool calling get no tools
+  // (and neither do models that reject them mid-turn, below)
+  let toolsSupported = modelInfo.supports_tools !== false;
+  const { toolCtx, turnTools, systemPromptFor, synthesisPrompt } = await prepareTurnContext({
+    agent: config.agent ?? null,
+    chatPrompt: config.systemPrompt,
+    mcpEnabled: toolsEnabled,
+    toolsSupported,
+    effortDirective: effortConfig.systemDirective,
+    userId: config.userId,
+    chatId,
+  });
+  const tools = turnTools.tools;
 
   // Fetch full chat history from the chats row
   const history = await getChatHistory(chatId);
 
   // Assemble initial messages array for the LLM
-  const messages: any[] = [];
-
-  // Combine system prompt with effort directive
-  const systemParts = [
-    config.systemPrompt || 'You are an intelligent AI assistant powered by NeuronKnowledge enterprise platform.',
-    effortConfig.systemDirective,
-  ];
-
-  if (tools.length > 0) {
-    systemParts.push(
-      `You have access to ${tools.length} active MCP tools: [${tools.map((t) => t.function.name).join(', ')}]. Use them proactively when user queries require calculations, search, system operations, or specialized data.`
-    );
-  }
-
-  messages.push({
-    role: 'system',
-    content: systemParts.join('\n\n'),
-  });
+  let messages: any[] = [];
+  messages.push({ role: 'system', content: systemPromptFor(true) });
 
   for (const msg of history) {
     const item: any = {
@@ -302,6 +315,8 @@ export async function runLLMAgentLoop(
     }
     messages.push(item);
   }
+  // Earlier tool turns (from a model that had tools) would be rejected by this one
+  if (!toolsSupported) messages = withoutToolMessages(messages);
 
   const apiUrl = resolveEndpointUrl(modelInfo.base_url, modelInfo.provider, 'chat');
   const headers = getLLMHeaders(modelInfo.api_key, modelInfo.provider);
@@ -357,7 +372,7 @@ export async function runLLMAgentLoop(
     }
 
     // Attach tools if available and enabled
-    if (tools.length > 0) {
+    if (toolsSupported && tools.length > 0) {
       requestBody.tools = tools;
       requestBody.tool_choice = 'auto';
     }
@@ -380,6 +395,25 @@ export async function runLLMAgentLoop(
 
     if (!llmResponse.ok) {
       const errText = await llmResponse.text().catch(() => '');
+      // The model rejected the tools (not marked as unsupported in admin yet):
+      // drop them for the rest of this turn and retry the same round without them
+      if (requestBody.tools && llmResponse.status < 500 && TOOLS_REJECTED_PATTERN.test(errText)) {
+        console.warn(
+          `Model "${modelInfo.model_id}" rejected tool calling (status ${llmResponse.status}); ` +
+            'retrying without tools. Turn off "รองรับ Tool Calling" for this model in Admin > LLM.',
+          errText.substring(0, 300)
+        );
+        toolsSupported = false;
+        messages = withoutToolMessages(messages);
+        messages[0] = { role: 'system', content: systemPromptFor(false) };
+        emit({
+          type: 'status',
+          status_message: '⚠️ Model นี้ไม่รองรับการเรียกใช้ Tools กำลังตอบโดยไม่ใช้เครื่องมือ...',
+          step: currentLoop,
+        });
+        currentLoop--;
+        continue;
+      }
       throw new Error(`LLM API returned status ${llmResponse.status}: ${errText.substring(0, 300)}`);
     }
 
@@ -656,7 +690,9 @@ export async function runLLMAgentLoop(
 
         emit({
           type: 'status',
-          status_message: `🔧 กำลังเรียกใช้ MCP Tool: ${tc.name}...`,
+          status_message: turnTools.builtinNames.includes(tc.name)
+            ? `🧰 กำลังเรียกใช้เครื่องมือในระบบ: ${tc.name}...`
+            : `🔧 กำลังเรียกใช้ MCP Tool: ${tc.name}...`,
           step: currentLoop,
         });
 
@@ -676,8 +712,12 @@ export async function runLLMAgentLoop(
 
         let execResult: any;
         try {
-          // Execute tool via MCP manager with 10-minute timeout; stop waiting if the user stops
-          execResult = await unlessAborted(executeMCPTool(tc.name, parsedArgs), signal);
+          // Built-in tools run in-process, MCP tools on their server (10-minute timeout);
+          // stop waiting if the user stops
+          execResult = await unlessAborted(
+            executeTool(tc.name, parsedArgs, toolCtx, turnTools.allowedNames),
+            signal
+          );
         } finally {
           clearInterval(heartbeatTimer);
         }
@@ -765,7 +805,7 @@ export async function runLLMAgentLoop(
       if (m.role === 'system') {
         return {
           role: 'system',
-          content: `${config.systemPrompt || 'You are an intelligent AI assistant powered by NeuronKnowledge enterprise platform.'}\n\nIMPORTANT: All data collection from tools is finished. Do NOT call any tools. You must now synthesize, analyze the data thoroughly, and formulate a comprehensive, detailed, well-structured, professional final answer for the user in Thai.`,
+          content: synthesisPrompt(),
         };
       }
       return m;

@@ -65,6 +65,30 @@ export interface MCPTool {
   updated_at: string;
 }
 
+/** In-process tool from /api/admin/builtin-tools; always available to every agent */
+interface BuiltinToolItem {
+  name: string;
+  label: string;
+  description: string;
+  input_schema: any;
+  available: boolean;
+}
+
+/** Built-in tools reuse the MCP test modal; transport_type "builtin" routes the test run */
+const builtinAsTestTool = (tool: BuiltinToolItem): MCPTool => ({
+  id: -1,
+  server_id: 0,
+  server_name: "Built-in",
+  transport_type: "builtin",
+  server_active: true,
+  name: tool.name,
+  description: tool.description,
+  input_schema: tool.input_schema,
+  is_enabled: true,
+  created_at: "",
+  updated_at: "",
+});
+
 type ModalState =
   | null
   | { type: "addServer" }
@@ -128,6 +152,7 @@ export default function AdminMCPSection() {
   // Data
   const [servers, setServers] = useState<MCPServer[]>([]);
   const [tools, setTools] = useState<MCPTool[]>([]);
+  const [builtinTools, setBuiltinTools] = useState<BuiltinToolItem[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<"servers" | "tools">("servers");
 
   // UI state
@@ -194,11 +219,23 @@ export default function AdminMCPSection() {
     }
   }, []);
 
+  const fetchBuiltinTools = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/builtin-tools");
+      if (res.ok) {
+        const data = await res.json();
+        setBuiltinTools(data.tools || []);
+      }
+    } catch {
+      showToast("ไม่สามารถโหลด Built-in Tools ได้", "error");
+    }
+  }, []);
+
   const fetchAll = useCallback(async () => {
     setIsLoading(true);
-    await Promise.all([fetchServers(), fetchTools()]);
+    await Promise.all([fetchServers(), fetchTools(), fetchBuiltinTools()]);
     setIsLoading(false);
-  }, [fetchServers, fetchTools]);
+  }, [fetchServers, fetchTools, fetchBuiltinTools]);
 
   useEffect(() => {
     fetchAll();
@@ -495,6 +532,7 @@ export default function AdminMCPSection() {
         body: JSON.stringify({
           tool_name: modal.tool.name,
           arguments: parsedArgs,
+          source: modal.tool.transport_type === "builtin" ? "builtin" : "mcp",
         }),
       });
 
@@ -568,6 +606,7 @@ export default function AdminMCPSection() {
     [servers]
   );
   const totalEnabledTools = useMemo(() => tools.filter((t) => t.is_enabled).length, [tools]);
+  const builtinNames = useMemo(() => new Set(builtinTools.map((t) => t.name)), [builtinTools]);
 
   return (
     <div className="space-y-5">
@@ -697,7 +736,10 @@ export default function AdminMCPSection() {
 
           {activeSubTab === "tools" && (
             <button
-              onClick={() => fetchTools()}
+              onClick={() => {
+                fetchTools();
+                fetchBuiltinTools();
+              }}
               disabled={isLoading}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg transition-all shadow-xs cursor-pointer"
             >
@@ -985,6 +1027,56 @@ export default function AdminMCPSection() {
       {/* ═══════════ SUB-TAB 2: TOOLS CATALOG ═══════════ */}
       {activeSubTab === "tools" && (
         <div className="space-y-3.5">
+          {/* Built-in Tools: in-process, always available to every agent */}
+          {builtinTools.length > 0 && (
+            <div className="bg-gradient-to-br from-blue-50/80 to-indigo-50/40 dark:from-blue-500/[0.06] dark:to-indigo-500/[0.03] border border-blue-200/70 dark:border-blue-500/20 rounded-2xl p-3.5 space-y-2.5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#0055fa] dark:text-blue-400" />
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  Built-in Tools ({builtinTools.length})
+                </h3>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                  ทำงานในระบบโดยตรง เปิดให้ทุก Agent ใช้เสมอ ไม่ต้องเชื่อมต่อ MCP Server
+                </span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {builtinTools.map((tool) => (
+                  <div
+                    key={tool.name}
+                    className="flex items-start justify-between gap-3 bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-xl p-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="font-semibold text-xs text-slate-900 dark:text-white font-mono">
+                          {tool.name}
+                        </h4>
+                        <span className="px-1.5 py-0.2 text-[9px] font-semibold rounded bg-blue-100 dark:bg-blue-500/20 text-[#0055fa] dark:text-blue-300">
+                          Built-in
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                          {tool.label}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                        {tool.available
+                          ? tool.description
+                          : "ยังไม่มี Skill ที่เปิดใช้งาน tool นี้จึงยังไม่ถูกส่งให้ AI"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleOpenTestTool(builtinAsTestTool(tool))}
+                      disabled={!tool.available}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#0055fa] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 rounded-lg transition-colors cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Play className="w-3 h-3" />
+                      ทดสอบ
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Tool Filters & Bulk Actions */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2 flex-1 flex-wrap sm:flex-nowrap">
@@ -1105,6 +1197,17 @@ export default function AdminMCPSection() {
                             <span className="px-1.5 py-0.2 text-[9px] font-medium rounded bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
                               {tool.server_name}
                             </span>
+
+                            {/* Same name as a built-in tool: the built-in wins in chats */}
+                            {builtinNames.has(tool.name) && (
+                              <span
+                                title="ชื่อซ้ำกับ Built-in Tool ระบบจะใช้ Built-in แทน และไม่ส่ง tool นี้ให้ AI"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] font-semibold rounded bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20"
+                              >
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                ถูกแทนที่ด้วย Built-in
+                              </span>
+                            )}
 
                             {/* Parameters count badge */}
                             <span className="px-1.5 py-0.2 text-[9px] font-medium rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">

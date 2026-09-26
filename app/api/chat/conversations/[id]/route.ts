@@ -39,9 +39,12 @@ export async function GET(
       `SELECT
         ch.*,
         m.display_name as model_name,
-        m.model_id as model_id_str
+        m.model_id as model_id_str,
+        a.name as agent_name,
+        a.icon as agent_icon
       FROM chats ch
       LEFT JOIN models m ON m.id = ch.model_id
+      LEFT JOIN agents a ON a.id = ch.agent_id
       WHERE ${whereClause} AND ch.user_id = $2`,
       [paramVal, auth.session!.id]
     );
@@ -66,6 +69,9 @@ export async function GET(
         model_id: row.model_id,
         model_name: row.model_name,
         model_id_str: row.model_id_str,
+        agent_id: row.agent_id,
+        agent_name: row.agent_name,
+        agent_icon: row.agent_icon,
         system_prompt: row.system_prompt,
         effort_level: row.effort_level,
         tools_enabled: row.tools_enabled,

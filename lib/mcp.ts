@@ -287,9 +287,10 @@ export async function testAndSyncMCPServer(serverId: number) {
 }
 
 /**
- * Returns all active & enabled MCP tools formatted for OpenAI Function Calling
+ * Returns all active & enabled MCP tools formatted for OpenAI Function Calling,
+ * limited to `allowedToolIds` when given (an agent's bound tools)
  */
-export async function getEnabledMCPTools(): Promise<{
+export async function getEnabledMCPTools(allowedToolIds?: number[]): Promise<{
   tools: OpenAIToolDefinition[];
   toolMap: Map<string, { serverId: number; toolId: number; serverName: string }>;
 }> {
@@ -298,7 +299,9 @@ export async function getEnabledMCPTools(): Promise<{
      FROM mcp_tools t
      JOIN mcp_servers s ON s.id = t.server_id
      WHERE s.is_active = true AND t.is_enabled = true
-     ORDER BY s.id, t.name`
+       AND ($1::int[] IS NULL OR t.id = ANY($1::int[]))
+     ORDER BY s.id, t.name`,
+    [allowedToolIds ?? null]
   );
 
   const tools: OpenAIToolDefinition[] = [];

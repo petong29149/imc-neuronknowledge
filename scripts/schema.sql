@@ -171,6 +171,11 @@ CREATE INDEX IF NOT EXISTS idx_chats_updated
 CREATE INDEX IF NOT EXISTS idx_chats_user
     ON public.chats USING btree
     (user_id ASC NULLS LAST);
+
+-- Sidebar history pagination: WHERE user_id = ? ORDER BY updated_at DESC, id DESC
+CREATE INDEX IF NOT EXISTS idx_chats_user_updated
+    ON public.chats USING btree
+    (user_id ASC NULLS LAST, updated_at DESC, id DESC);
 -----------------------------------
 ----------- groups ----------------
 -----------------------------------
@@ -223,3 +228,107 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_group_members_group_user
 CREATE INDEX IF NOT EXISTS idx_group_members_user
     ON public.group_members USING btree
     (user_id ASC NULLS LAST);
+
+-----------------------------------
+------------- skills --------------
+-----------------------------------
+CREATE TABLE IF NOT EXISTS public.skills
+(
+    id SERIAL PRIMARY KEY,
+    slug character varying(100) COLLATE pg_catalog."default" NOT NULL UNIQUE,
+    name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    -- Shown in the system prompt; tells the model when to load this skill
+    description text COLLATE pg_catalog."default" NOT NULL DEFAULT ''::text,
+    -- Full instructions, returned by the load_skill tool
+    content text COLLATE pg_catalog."default" NOT NULL DEFAULT ''::text,
+    is_active boolean NOT NULL DEFAULT true,
+    created_by integer REFERENCES public.users (id) ON DELETE SET NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_skills_active
+    ON public.skills USING btree
+    (is_active ASC NULLS LAST);
+
+-----------------------------------
+------------- agents --------------
+-----------------------------------
+-- A persona prompt plus the skills and MCP tools it may use.
+-- Built-in tools are available to every agent and are not bound here.
+CREATE TABLE IF NOT EXISTS public.agents
+(
+    id SERIAL PRIMARY KEY,
+    slug character varying(100) COLLATE pg_catalog."default" NOT NULL UNIQUE,
+    name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    description text COLLATE pg_catalog."default" NOT NULL DEFAULT ''::text,
+    icon character varying(16) COLLATE pg_catalog."default" NOT NULL DEFAULT '🤖'::character varying,
+    system_prompt text COLLATE pg_catalog."default" NOT NULL DEFAULT ''::text,
+    default_model_id integer REFERENCES public.models (id) ON DELETE SET NULL,
+    is_active boolean NOT NULL DEFAULT true,
+    is_default boolean NOT NULL DEFAULT false,
+    created_by integer REFERENCES public.users (id) ON DELETE SET NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+-- At most one default agent
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_single_default
+    ON public.agents USING btree (is_default) WHERE is_default;
+
+CREATE TABLE IF NOT EXISTS public.agent_skills
+(
+    agent_id integer NOT NULL REFERENCES public.agents (id) ON DELETE CASCADE,
+    skill_id integer NOT NULL REFERENCES public.skills (id) ON DELETE CASCADE,
+    PRIMARY KEY (agent_id, skill_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.agent_tools
+(
+    agent_id integer NOT NULL REFERENCES public.agents (id) ON DELETE CASCADE,
+    mcp_tool_id integer NOT NULL REFERENCES public.mcp_tools (id) ON DELETE CASCADE,
+    PRIMARY KEY (agent_id, mcp_tool_id)
+);
+
+-- An agent with no rows here is open to everyone; otherwise only to members of these groups
+CREATE TABLE IF NOT EXISTS public.agent_groups
+(
+    agent_id integer NOT NULL REFERENCES public.agents (id) ON DELETE CASCADE,
+    group_id integer NOT NULL REFERENCES public.groups (id) ON DELETE CASCADE,
+    PRIMARY KEY (agent_id, group_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_groups_group
+    ON public.agent_groups USING btree (group_id ASC NULLS LAST);
+
+-- The agent a chat was started with; fixed for the life of the chat
+ALTER TABLE public.chats ADD COLUMN IF NOT EXISTS agent_id integer REFERENCES public.agents (id) ON DELETE SET NULL;
+
+-- false = the model/endpoint does not accept tool calling; chats with it get no tools
+ALTER TABLE public.models ADD COLUMN IF NOT EXISTS supports_tools boolean NOT NULL DEFAULT true;
+
+-----------------------------------
+--------- app settings ------------
+-----------------------------------
+-- Global key/value settings (persona_prompt, core_prompt).
+-- A missing row means the code default is in use.
+CREATE TABLE IF NOT EXISTS public.app_settings
+(
+    key character varying(100) COLLATE pg_catalog."default" PRIMARY KEY,
+    value text COLLATE pg_catalog."default" NOT NULL DEFAULT ''::text,
+    updated_by integer REFERENCES public.users (id) ON DELETE SET NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Every saved version of a prompt setting, for audit and rollback
+CREATE TABLE IF NOT EXISTS public.prompt_revisions
+(
+    id SERIAL PRIMARY KEY,
+    key character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    value text COLLATE pg_catalog."default" NOT NULL,
+    updated_by integer REFERENCES public.users (id) ON DELETE SET NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_prompt_revisions_key
+    ON public.prompt_revisions USING btree (key ASC NULLS LAST, created_at DESC NULLS FIRST);

@@ -57,6 +57,7 @@ export interface Model {
   is_active: boolean;
   is_default: boolean;
   capabilities: string[];
+  supports_tools: boolean;
   connection_name: string;
   connection_provider: string;
   connection_base_url: string;
@@ -125,6 +126,7 @@ export default function AdminLLMSection() {
     top_p: 1.0,
     is_active: true,
     is_default: false,
+    supports_tools: true,
   });
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -622,6 +624,7 @@ export default function AdminLLMSection() {
       top_p: 1.0,
       is_active: true,
       is_default: false,
+      supports_tools: true,
     });
   };
 
@@ -660,6 +663,7 @@ export default function AdminLLMSection() {
       top_p: model.top_p,
       is_active: model.is_active,
       is_default: model.is_default,
+      supports_tools: model.supports_tools !== false,
     });
     setModal({ type: "editModel", model });
   };
@@ -1085,6 +1089,15 @@ export default function AdminLLMSection() {
                           {model.is_default && (
                             <span className="px-1.5 py-0.2 text-[9px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded">
                               DEFAULT
+                            </span>
+                          )}
+
+                          {model.supports_tools === false && (
+                            <span
+                              title="Model นี้ไม่ได้รับ Tools และ Skills"
+                              className="px-1.5 py-0.2 text-[9px] font-bold bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10 rounded"
+                            >
+                              NO TOOLS
                             </span>
                           )}
                         </div>
@@ -1517,6 +1530,19 @@ export default function AdminLLMSection() {
                     className="w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500"
                   />
                   <span className="text-xs font-semibold">ตั้งเป็น Model เริ่มต้น</span>
+                </label>
+
+                <label
+                  className="flex items-center gap-2 cursor-pointer"
+                  title="ปิดเมื่อ Model/Endpoint นี้ไม่รองรับ Tool Calling ระบบจะไม่ส่ง Tools และ Skills ให้ Model นี้"
+                >
+                  <input
+                    type="checkbox"
+                    checked={modelForm.supports_tools}
+                    onChange={(e) => setModelForm({ ...modelForm, supports_tools: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 text-[#0055fa] focus:ring-[#0055fa]"
+                  />
+                  <span className="text-xs font-semibold">รองรับ Tool Calling</span>
                 </label>
               </div>
             </div>

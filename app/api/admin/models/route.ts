@@ -152,6 +152,7 @@ export async function GET(request: Request) {
             is_active: false,
             is_default: false,
             capabilities: [],
+            supports_tools: true,
             connection_name: conn.name,
             connection_provider: conn.provider,
             connection_base_url: conn.base_url,
@@ -224,6 +225,7 @@ export async function POST(request: Request) {
       is_active = true,
       is_default = false,
       capabilities = [],
+      supports_tools = true,
     } = body;
 
     if (!connection_id) {
@@ -245,9 +247,10 @@ export async function POST(request: Request) {
     const result = await query(
       `INSERT INTO models (
         connection_id, model_id, display_name, description, context_length,
-        max_tokens, temperature, top_p, is_active, is_default, capabilities, created_at, updated_at
+        max_tokens, temperature, top_p, is_active, is_default, capabilities, supports_tools,
+        created_at, updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
       ON CONFLICT (connection_id, model_id) DO UPDATE SET
         display_name = EXCLUDED.display_name,
         description = EXCLUDED.description,
@@ -257,6 +260,7 @@ export async function POST(request: Request) {
         top_p = EXCLUDED.top_p,
         is_active = EXCLUDED.is_active,
         is_default = EXCLUDED.is_default,
+        supports_tools = EXCLUDED.supports_tools,
         updated_at = NOW()
       RETURNING *`,
       [
@@ -271,6 +275,7 @@ export async function POST(request: Request) {
         Boolean(is_active),
         Boolean(is_default),
         JSON.stringify(capabilities),
+        Boolean(supports_tools),
       ]
     );
 
