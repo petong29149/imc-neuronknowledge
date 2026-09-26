@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Palette, UserCircle, Info, Sun, Moon, Check, RefreshCw, BookOpen } from "lucide-react";
+import { X, Palette, UserCircle, Info, Sun, Moon, Check, RefreshCw, BookOpen, Sparkles, ArrowLeft, ChevronRight } from "lucide-react";
 import Modal from "@/components/common/Modal";
 import { useTheme, type FontSize } from "@/app/theme-provider";
 import { useAuth } from "@/context/AuthContext";
@@ -20,22 +20,127 @@ const FONT_SIZES: { id: FontSize; label: string; sample: string }[] = [
   { id: "large", label: "ใหญ่", sample: "text-base" },
 ];
 
+// Release history shown in Settings → About → Patch Notes, newest first.
+// Add a new entry on top whenever "version" in package.json is bumped.
+const PATCH_NOTES: { version: string; features: { title: string; desc: string }[] }[] = [
+  {
+    version: "0.1.0",
+    features: [
+      {
+        title: "หน้าแชทใหม่ที่เรียบง่ายขึ้น",
+        desc: "ช่องแชทอยู่กลางหน้าจอเมื่อเริ่มแชทใหม่ พร้อมคำถามแนะนำ และเลื่อนลงด้านล่างอย่างนุ่มนวลเมื่อเริ่มสนทนา",
+      },
+      {
+        title: "ค้นหาแชท",
+        desc: "ค้นหาประวัติการสนทนาจากชื่อแชทได้ทันทีจากแถบด้านข้าง",
+      },
+      {
+        title: "โหลดประวัติแชทเมื่อเลื่อน",
+        desc: "ประวัติแชทโหลดทีละส่วนเมื่อเลื่อนลง ทำให้เปิดหน้าได้เร็วขึ้น",
+      },
+      {
+        title: "ปรับการแสดงผลได้เอง",
+        desc: "เลือกธีมสว่าง/มืด และปรับขนาดตัวอักษรได้ 3 ระดับ",
+      },
+      {
+        title: "จัดการโปรไฟล์",
+        desc: "แก้ไขชื่อที่แสดงและเปลี่ยนรหัสผ่านได้ด้วยตัวเอง",
+      },
+      {
+        title: "คู่มือการใช้งาน",
+        desc: "แนะนำการใช้งานทีละขั้นตอนสำหรับผู้ใช้ใหม่ เปิดดูซ้ำได้จากเมนูผู้ใช้",
+      },
+    ],
+  },
+];
+
 const inputClass =
   "w-full px-3.5 py-2.5 rounded-xl text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0055fa]";
 const labelClass = "block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1";
 const primaryButtonClass =
   "inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-[#0055fa] text-white hover:bg-[#0046d1] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer";
 
+/** localStorage key holding the last app version whose patch notes a user has seen. */
+export const seenVersionKey = (userId: number) => `nk_seen_version_${userId}`;
+
+/**
+ * Full-modal patch notes. Opened from Settings → About (with a back button), or shown
+ * by itself the first time a user visits after a version update (close only).
+ */
+export function PatchNotesModal({ onClose, onBack }: { onClose: () => void; onBack?: () => void }) {
+  return (
+    <Modal
+      onClose={onClose}
+      label="Patch Notes"
+      panelClassName="w-full max-w-2xl bg-white dark:bg-[#0c1222] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden"
+    >
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 pt-5 pb-4 border-b border-slate-100 dark:border-white/5">
+        <div className="flex items-center gap-2 min-w-0">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="ย้อนกลับ"
+              title="ย้อนกลับ"
+              className="p-1 -ml-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          ) : (
+            <Sparkles className="w-5 h-5 text-[#0055fa] dark:text-blue-400 shrink-0" />
+          )}
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+            {onBack ? "Patch Notes" : `มีอะไรใหม่ใน v${process.env.APP_VERSION}`}
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="ปิด"
+          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <div className="animate-chat-enter max-h-[70vh] sm:max-h-none sm:h-[420px] overflow-y-auto px-6 py-5">
+        <PatchNotes />
+      </div>
+      {!onBack && (
+        <div className="flex justify-end px-6 py-4 border-t border-slate-100 dark:border-white/5">
+          <button type="button" onClick={onClose} className={primaryButtonClass}>
+            รับทราบ
+          </button>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 export default function SettingsModal({
   initialTab = "ui",
   onClose,
-  onOpenGuide,
 }: {
   initialTab?: SettingsTab;
   onClose: () => void;
-  onOpenGuide: () => void;
 }) {
   const [tab, setTab] = useState<SettingsTab>(initialTab);
+  // Patch notes take over the whole modal; "back" returns to the About tab
+  const [showPatchNotes, setShowPatchNotes] = useState(false);
+
+  const closeButton = (
+    <button
+      type="button"
+      onClick={onClose}
+      aria-label="ปิด"
+      className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+    >
+      <X className="w-5 h-5" />
+    </button>
+  );
+
+  if (showPatchNotes) {
+    return <PatchNotesModal onClose={onClose} onBack={() => setShowPatchNotes(false)} />;
+  }
 
   return (
     <Modal
@@ -45,14 +150,7 @@ export default function SettingsModal({
     >
       <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100 dark:border-white/5">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white">การตั้งค่า</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="ปิด"
-          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {closeButton}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:h-[420px]">
@@ -87,7 +185,7 @@ export default function SettingsModal({
         <div role="tabpanel" className="flex-1 min-w-0 p-6 overflow-y-auto">
           {tab === "ui" && <UISettings />}
           {tab === "profile" && <ProfileSettings />}
-          {tab === "about" && <AboutSection onOpenGuide={onOpenGuide} />}
+          {tab === "about" && <AboutSection onOpenPatchNotes={() => setShowPatchNotes(true)} />}
         </div>
       </div>
     </Modal>
@@ -349,7 +447,7 @@ function ProfileSettings() {
 
 // ────────────── About ──────────────
 
-function AboutSection({ onOpenGuide }: { onOpenGuide: () => void }) {
+function AboutSection({ onOpenPatchNotes }: { onOpenPatchNotes: () => void }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -383,12 +481,52 @@ function AboutSection({ onOpenGuide }: { onOpenGuide: () => void }) {
 
       <button
         type="button"
-        onClick={onOpenGuide}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0055fa] dark:text-blue-400 hover:underline cursor-pointer"
+        onClick={onOpenPatchNotes}
+        className="w-full flex items-center gap-3 p-4 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-[#0055fa]/40 hover:bg-blue-50/40 dark:hover:bg-[#0055fa]/5 text-left transition-colors cursor-pointer group"
       >
-        <BookOpen className="w-3.5 h-3.5" />
-        เปิดคู่มือการใช้งาน
+        <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-[#0055fa]/10 text-[#0055fa] dark:text-blue-400 flex items-center justify-center shrink-0">
+          <Sparkles className="w-4 h-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">มีอะไรใหม่ใน v{PATCH_NOTES[0].version}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {PATCH_NOTES[0].features.length} ฟีเจอร์ใหม่ · ดู Patch Notes ทั้งหมด
+          </p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#0055fa] group-hover:translate-x-0.5 transition-all shrink-0" />
       </button>
+    </div>
+  );
+}
+
+// ────────────── Patch Notes ──────────────
+
+function PatchNotes() {
+  return (
+    <div className="space-y-8">
+      {PATCH_NOTES.map((release, idx) => (
+        <section key={release.version}>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="font-mono text-base font-bold text-slate-900 dark:text-white">v{release.version}</h3>
+            {idx === 0 && (
+              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-50 dark:bg-[#0055fa]/10 text-[#0055fa] dark:text-blue-400 border border-blue-200 dark:border-[#0055fa]/20">
+                ล่าสุด
+              </span>
+            )}
+          </div>
+          <ul className="space-y-3">
+            {release.features.map((feature) => (
+              <li key={feature.title} className="flex gap-3">
+                <span className="mt-2 w-1.5 h-1.5 rounded-full bg-[#0055fa] shrink-0" aria-hidden />
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{feature.title}</p>
+                  <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">{feature.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

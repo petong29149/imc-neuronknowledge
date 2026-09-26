@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import SettingsModal from "@/components/chat/SettingsModal";
+import SettingsModal, { PatchNotesModal, seenVersionKey } from "@/components/chat/SettingsModal";
 import UserGuideModal, { guideSeenKey } from "@/components/chat/UserGuideModal";
 import Link from "next/link";
 import {
@@ -310,6 +310,8 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
   const [guideOpen, setGuideOpen] = useState(false);
   // The guide opens by itself the first time a user reaches the chat page
   const [guideAutoHandled, setGuideAutoHandled] = useState(false);
+  // Patch notes open by themselves on the first visit after a version update
+  const [patchNotesAutoHandled, setPatchNotesAutoHandled] = useState(false);
   const [editingTitle, setEditingTitle] = useState<number | string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -1361,15 +1363,44 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
       return true; // storage unavailable: don't nag on every visit
     }
   };
-  const showGuide = guideOpen || (!guideAutoHandled && !!user && !hasSeenGuide(user.id));
+  const hasSeenCurrentVersion = (userId: number) => {
+    try {
+      return localStorage.getItem(seenVersionKey(userId)) === process.env.APP_VERSION;
+    } catch {
+      return true;
+    }
+  };
+  const markCurrentVersionSeen = () => {
+    try {
+      if (user) localStorage.setItem(seenVersionKey(user.id), process.env.APP_VERSION || "");
+    } catch {
+      // ignore
+    }
+  };
+
+  const guidePending = !guideAutoHandled && !!user && !hasSeenGuide(user.id);
+  const showGuide = guideOpen || guidePending;
+  // New users get the guide instead; patch notes are for returning users after an update
+  const showPatchNotes =
+    !patchNotesAutoHandled && !!user && !guidePending && !hasSeenCurrentVersion(user.id);
+
   const closeGuide = () => {
     try {
       if (user) localStorage.setItem(guideSeenKey(user.id), "1");
     } catch {
       // ignore
     }
+    // Someone who just read the guide is already on the current version
+    if (guidePending) {
+      markCurrentVersionSeen();
+      setPatchNotesAutoHandled(true);
+    }
     setGuideOpen(false);
     setGuideAutoHandled(true);
+  };
+  const closePatchNotes = () => {
+    markCurrentVersionSeen();
+    setPatchNotesAutoHandled(true);
   };
 
   // ────── Loading ──────
@@ -1907,15 +1938,10 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
       </div>
 
       {settingsOpen && (
-        <SettingsModal
-          onClose={() => setSettingsOpen(false)}
-          onOpenGuide={() => {
-            setSettingsOpen(false);
-            setGuideOpen(true);
-          }}
-        />
+        <SettingsModal onClose={() => setSettingsOpen(false)} />
       )}
       {showGuide && !settingsOpen && <UserGuideModal onClose={closeGuide} />}
+      {showPatchNotes && !showGuide && !settingsOpen && <PatchNotesModal onClose={closePatchNotes} />}
     </div>
   );
 }
