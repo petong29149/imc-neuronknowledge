@@ -81,7 +81,7 @@ const PILLARS = [
 
 export default function PillarsSection() {
   return (
-    <section id="pillars" className="py-24 relative bg-slate-50/50 dark:bg-[#070b14]/70 border-b border-slate-200/80 dark:border-white/5">
+    <section id="pillars" className="py-24 relative overflow-hidden bg-slate-50/50 dark:bg-[#070b14]/70 border-b border-slate-200/80 dark:border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -92,10 +92,13 @@ export default function PillarsSection() {
               <span>4 Core Pillars</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              เสาหลักแห่งความสำเร็จ: คลังความรู้ + RAG + AI Agents
+              เสาหลักแห่งความสำเร็จ
+            </h2>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold text-[#0055fa] dark:text-blue-400 tracking-tight">
+              คลังความรู้ + RAG + AI Agents
             </h2>
             <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
-              ยกระดับจากระบบแชตทั่วไป สู่แพลตฟอร์มบริหารจัดการความรู้และปัญญาประดิษฐ์ระดับองค์กรที่พร้อมใช้งานจริง
+              ยกระดับจากระบบแชตทั่วไป สู่แพลตฟอร์มบริหารจัดการความรู้และปัญญาประดิษฐ์ระดับองค์กร
             </p>
           </div>
         </ScrollReveal>

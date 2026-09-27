@@ -142,7 +142,7 @@ export default function KnowledgeLibrary() {
   const IconComponent = selectedDomain.icon;
 
   return (
-    <section id="library" className="py-24 relative bg-white dark:bg-[#070b14] border-b border-slate-200/80 dark:border-white/5">
+    <section id="library" className="py-24 relative overflow-hidden bg-white dark:bg-[#070b14] border-b border-slate-200/80 dark:border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}

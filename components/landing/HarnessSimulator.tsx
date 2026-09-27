@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { 
   Bot, 
   Send, 
@@ -659,8 +660,21 @@ export default function HarnessSimulator() {
   };
 
   return (
-    <section id="simulator" className="py-24 bg-slate-50/70 dark:bg-[#060a13] relative border-y border-slate-200/80 dark:border-white/5">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="simulator" className="py-24 bg-slate-50/70 dark:bg-[#060a13] relative border-y border-slate-200/80 dark:border-white/5 overflow-hidden">
+      {/* Top Background Image Banner */}
+      <div className="absolute top-0 inset-x-0 h-[400px] sm:h-[480px] lg:h-[540px] pointer-events-none select-none overflow-hidden z-0">
+        <Image
+          src="/sim_section2.png"
+          alt="NeuronKnowledge Simulator"
+          fill
+          sizes="100vw"
+          className="object-cover object-top mix-blend-multiply dark:mix-blend-screen"
+        />
+        {/* Soft bottom gradient fade to seamlessly merge into the section background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-50/20 to-slate-50/80 dark:from-transparent dark:via-[#060a13]/40 dark:to-[#060a13]" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Section Header */}
         <ScrollReveal variant="fade-up">
@@ -672,7 +686,7 @@ export default function HarnessSimulator() {
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               สัมผัสประสบการณ์ Harness ที่ไม่มีคำว่า “มั่ว”
             </h2>
-            <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
+            <p className="mt-4 text-base sm:text-lg text-slate-800 dark:text-slate-300">
               ทดลองเลือกสลับ Domain Agent ด้านล่าง และคลิกที่แท็ก <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-[#0055fa] dark:text-blue-300 font-bold">[Doc X]</span> ในคำตอบ เพื่อดูข้อมูลอ้างอิงจริงที่ดึงจาก Qdrant Vector Engine
             </p>
           </div>

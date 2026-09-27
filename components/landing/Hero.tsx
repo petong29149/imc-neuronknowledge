@@ -42,11 +42,6 @@ export default function Hero() {
                     Domain Knowledge Agent Platform by IMC Institute
                   </span>
                 </div>
-
-                <div className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-blue-50/80 dark:bg-blue-950/40 text-[#0055fa] dark:text-blue-400 border border-blue-200/80 dark:border-blue-900/50">
-                  <Zap className="w-3.5 h-3.5 text-[#0055fa] dark:text-blue-400 animate-pulse" />
-                  <span>Next.js 16 • PostgreSQL • Qdrant • OpenRouter</span>
-                </div>
               </div>
             </ScrollReveal>
 
@@ -99,9 +94,9 @@ export default function Hero() {
                 <div className="absolute inset-[8%] rounded-full bg-gradient-to-br from-[#0055fa]/20 via-sky-300/10 to-[#fec921]/20 blur-3xl pointer-events-none" />
 
                 <div className="relative animate-float-slow">
-                  <div className="relative rounded-[2rem] dark:bg-white/95 dark:p-4 dark:shadow-2xl dark:shadow-[#0055fa]/20 dark:ring-1 dark:ring-white/10">
+                  <div className="relative rounded-[2rem]">
                     <Image
-                      src="/landing/hero1.png"
+                      src="/landing/hero_section.png"
                       alt="NeuronKnowledge architecture: Website, LLM, Database and RAG connected to a central AI harness"
                       width={1026}
                       height={890}

@@ -1,21 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useTheme } from "@/app/theme-provider";
 import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 import { 
   Sun, 
   Moon, 
   Menu, 
   X, 
-  ArrowRight, 
-  BookOpen, 
   Sparkles,
   ShieldCheck,
-  User as UserIcon,
   LogOut,
-  LogIn
+  LogIn,
+  ChevronRight,
+  Cpu,
+  Layers,
+  Database
 } from "lucide-react";
 
 export default function Navbar() {
@@ -23,6 +25,7 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,53 +35,81 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close mobile menu on outside click or Escape key
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
   const navLinks = [    
-    { label: "AI Harness", href: "#simulator", badge: "Demo" },
-    { label: "จุดเด่นระบบ", href: "#pillars" },
-    { label: "สถาปัตยกรรม", href: "#architecture" },
-    { label: "คลังความรู้", href: "#library" }
+    { label: "AI Harness", href: "#simulator", badge: "Demo", icon: Cpu },
+    { label: "จุดเด่นระบบ", href: "#pillars", icon: Sparkles },
+    { label: "สถาปัตยกรรม", href: "#architecture", icon: Layers },
+    { label: "คลังความรู้", href: "#library", icon: Database }
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 px-3 sm:px-6 lg:px-8 pt-3 sm:pt-4 transition-all duration-300">
+    <header 
+      ref={navRef}
+      className="fixed top-0 left-0 right-0 z-50 px-2.5 sm:px-6 lg:px-8 pt-2.5 sm:pt-4 transition-all duration-300"
+    >
       <div 
         className={`max-w-6xl mx-auto rounded-2xl transition-all duration-300 ${
           scrolled 
-            ? "bg-white/85 dark:bg-[#070b14]/90 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-lg shadow-slate-900/5 px-4 sm:px-6 py-2.5" 
-            : "bg-white/60 dark:bg-[#070b14]/70 backdrop-blur-md border border-slate-200/60 dark:border-white/5 shadow-sm px-4 sm:px-6 py-3"
+            ? "bg-white/90 dark:bg-[#070b14]/90 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-lg shadow-slate-900/5 px-3 sm:px-5 lg:px-6 py-2 sm:py-2.5" 
+            : "bg-white/80 dark:bg-[#070b14]/80 backdrop-blur-md border border-slate-200/70 dark:border-white/5 shadow-sm px-3 sm:px-5 lg:px-6 py-2.5 sm:py-3"
         }`}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           
           {/* Logo & Brand */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="relative flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#0055fa] to-[#2670ff] text-white shadow-sm shadow-[#0055fa]/30 group-hover:scale-105 transition-transform duration-200 shrink-0">
-                <BookOpen className="w-4 h-4 text-white" />
-                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#fec921] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#fec921] border border-white dark:border-[#070b14]"></span>
-                </span>
+          <div className="flex items-center min-w-0">
+            <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0">
+              <div className="relative flex items-center justify-center shrink-0">
+                <Image
+                  src="/imc_logo.png"
+                  alt="IMC Logo"
+                  width={36}
+                  height={36}
+                  style={{ width: "auto", height: "auto" }}
+                  className="rounded-lg h-7 w-auto sm:h-8 lg:h-9 object-contain group-hover:scale-105 transition-transform duration-200"
+                  priority
+                />
               </div>
               
-              <div className="flex items-center gap-2">
-                <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="text-sm sm:text-base lg:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">
                   Neuron<span className="text-[#0055fa] dark:text-[#3b82f6]">Knowledge</span>
                 </span>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded-md bg-blue-50 dark:bg-white/5 text-[#0055fa] dark:text-blue-400 border border-blue-200/60 dark:border-white/10">
+                <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-md bg-blue-50 dark:bg-white/5 text-[#0055fa] dark:text-blue-400 border border-blue-200/60 dark:border-white/10 shrink-0">
                   by IMC
                 </span>
               </div>
             </Link>
           </div>
 
-          {/* Desktop Navigation - Centered */}
-          <nav className="hidden md:flex items-center gap-1 sm:gap-2">
+          {/* Desktop Navigation Links (Large screen only to avoid tablet crowding) */}
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
             {navLinks.map((link, idx) => (
               <a
                 key={idx}
                 href={link.href}
-                className="px-3.5 py-1.5 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-[#0055fa] dark:hover:text-[#60a5fa] hover:bg-slate-100/70 dark:hover:bg-white/5 rounded-xl transition-all flex items-center gap-1.5"
+                className="px-3 xl:px-3.5 py-1.5 text-xs xl:text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-[#0055fa] dark:hover:text-[#60a5fa] hover:bg-slate-100/70 dark:hover:bg-white/5 rounded-xl transition-all flex items-center gap-1.5"
               >
                 <span>{link.label}</span>
                 {link.badge && (
@@ -91,12 +122,12 @@ export default function Navbar() {
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
               aria-label="Toggle theme"
-              className="p-2 sm:p-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 transition-all cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 border border-slate-200/80 dark:border-white/10 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/30"
             >
               {theme === "dark" ? (
                 <Sun className="w-4 h-4 text-[#fec921] transition-transform duration-300 hover:rotate-45" />
@@ -107,47 +138,61 @@ export default function Navbar() {
 
             {/* User Session State */}
             {user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Admin button - Desktop only (hidden on tablet & mobile, accessible in mobile menu) */}
                 {user.role === "admin" && (
                   <Link
                     href="/admin/dashboard"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0055fa] dark:hover:text-blue-400 bg-slate-100/80 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 rounded-xl border border-slate-200/70 dark:border-white/10 transition-all"
+                    className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0055fa] dark:hover:text-blue-400 bg-slate-100/80 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 rounded-xl border border-slate-200/70 dark:border-white/10 transition-all"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-[#0055fa]" />
-                    <span className="hidden sm:inline">Admin</span>
+                    <span>Admin</span>
                   </Link>
                 )}
 
+                {/* Chat AI CTA button - Desktop & Tablet */}
                 <Link
                   href="/chat"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-md shadow-[#0055fa]/20 transition-all"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-md shadow-[#0055fa]/20 transition-all active:scale-95"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Chat AI</span>
-                  <span className="sm:hidden">Chat</span>
+                  <span>Chat AI</span>
                 </Link>
 
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/10 text-xs">
+                {/* User profile pill - Desktop & Tablet */}
+                <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100/80 dark:bg-white/5 border border-slate-200/70 dark:border-white/10 text-xs">
                   <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-medium text-slate-700 dark:text-slate-200 max-w-[90px] truncate hidden sm:inline">
+                  <span className="font-medium text-slate-700 dark:text-slate-200 max-w-[85px] truncate">
                     {user.name}
                   </span>
                   <button
                     onClick={() => logout()}
                     title="ออกจากระบบ"
+                    aria-label="ออกจากระบบ"
                     className="p-0.5 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
                 </div>
+
+                {/* Compact User Initial Avatar on Small Mobile */}
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(prev => !prev)}
+                  className="md:hidden flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-[11px] shadow-sm select-none"
+                  aria-label="User profile menu"
+                >
+                  {user.name.charAt(0).toUpperCase()}
+                </button>
               </div>
             ) : (
+              /* Guest State */
               <div className="flex items-center gap-1.5">
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-[#0055fa] dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
+                  className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-[#0055fa] dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>เข้าสู่ระบบ</span>
@@ -162,77 +207,124 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* Mobile Menu Toggle */}
+            {/* Mobile / Tablet Menu Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200/60 dark:border-white/10"
-              aria-label="Open menu"
+              className="lg:hidden p-1.5 sm:p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200/60 dark:border-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              aria-label={mobileMenuOpen ? "ปิดเมนู" : "เปิดเมนู"}
+              aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5 text-rose-500 transition-transform duration-200" />
+              ) : (
+                <Menu className="w-5 h-5 transition-transform duration-200" />
+              )}
             </button>
           </div>
 
         </div>
 
-        {/* Mobile Dropdown Menu */}
+        {/* Mobile / Tablet Dropdown Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-slate-200/80 dark:border-white/10 space-y-1 pb-1 animate-in fade-in duration-150">
-            {navLinks.map((link, idx) => (
-              <a
-                key={idx}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
-              >
-                <span>{link.label}</span>
-                {link.badge && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-semibold font-mono rounded bg-[#fec921]/20 text-[#b48206] dark:text-[#fec921]">
-                    {link.badge}
-                  </span>
-                )}
-              </a>
-            ))}
-
-            {user ? (
-              <div className="pt-2 border-t border-slate-200/60 dark:border-white/10 space-y-1.5">
-                <div className="px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400">
-                  เข้าสู่ระบบในชื่อ: <span className="font-semibold text-slate-800 dark:text-white">{user.name}</span> ({user.role})
-                </div>
-                <Link
-                  href="/chat"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#0055fa] shadow-sm"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Chat AI</span>
-                </Link>
-                {user.role === "admin" && (
-                  <Link
-                    href="/admin/dashboard"
+          <div className="lg:hidden mt-3 pt-3 border-t border-slate-200/80 dark:border-white/10 space-y-3 pb-1 animate-in fade-in slide-in-from-top-2 duration-200 max-h-[calc(100dvh-5.5rem)] overflow-y-auto">
+            {/* Nav links */}
+            <div className="space-y-1">
+              {navLinks.map((link, idx) => {
+                const IconComponent = link.icon;
+                return (
+                  <a
+                    key={idx}
+                    href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 shadow-sm"
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-blue-50/70 dark:hover:bg-blue-950/30 hover:text-[#0055fa] dark:hover:text-blue-400 transition-colors group"
                   >
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>เข้าสู่ Admin Console</span>
+                    <div className="flex items-center gap-2.5">
+                      <span className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 group-hover:text-[#0055fa] dark:group-hover:text-blue-400 transition-colors">
+                        <IconComponent className="w-4 h-4" />
+                      </span>
+                      <span>{link.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {link.badge && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-semibold font-mono rounded bg-[#fec921]/20 text-[#b48206] dark:text-[#fec921] border border-[#fec921]/30">
+                          {link.badge}
+                        </span>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+
+            {/* User Session / Guest Section in Drawer */}
+            {user ? (
+              <div className="pt-2.5 border-t border-slate-200/70 dark:border-white/10 space-y-2">
+                {/* User Info Card */}
+                <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-100/70 dark:bg-white/5 border border-slate-200/60 dark:border-white/5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-400 text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-sm text-slate-800 dark:text-white truncate">
+                        {user.name}
+                      </span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
+                        user.role === "admin" 
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300/40 dark:border-amber-500/30" 
+                          : "bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300"
+                      }`}>
+                        {user.role === "admin" ? "Admin" : "Member"}
+                      </span>
+                    </div>
+                    {user.email && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {user.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 pt-1">
+                  <Link
+                    href="/chat"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] shadow-md shadow-[#0055fa]/20 transition-all active:scale-[0.98]"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>เข้าสู่ Chat AI</span>
                   </Link>
-                )}
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    logout();
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-rose-600 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>ออกจากระบบ</span>
-                </button>
+                  
+                  {user.role === "admin" && (
+                    <Link
+                      href="/admin/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 transition-all"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-[#0055fa]" />
+                      <span>เข้าสู่ Admin Console</span>
+                    </Link>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 border border-rose-200/80 dark:border-rose-500/20 transition-all cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>ออกจากระบบ</span>
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="pt-2 grid grid-cols-2 gap-2">
+              <div className="pt-2.5 border-t border-slate-200/70 dark:border-white/10 grid grid-cols-2 gap-2">
                 <Link
                   href="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-white/5 text-center"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200/70 dark:border-white/10 text-center transition-all"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   <span>เข้าสู่ระบบ</span>
@@ -240,7 +332,7 @@ export default function Navbar() {
                 <Link
                   href="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-[#0055fa] text-center"
+                  className="flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] shadow-md shadow-[#0055fa]/20 text-center transition-all"
                 >
                   <span>สมัครสมาชิก</span>
                 </Link>
@@ -253,3 +345,4 @@ export default function Navbar() {
     </header>
   );
 }
+

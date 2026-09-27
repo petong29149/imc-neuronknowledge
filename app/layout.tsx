@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans_Thai, Geist, Geist_Mono } from "next/font/google";
+import { Anuphan, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./theme-provider";
 import { AuthProvider } from "@/context/AuthContext";
 
-const ibmPlexSansThai = IBM_Plex_Sans_Thai({
-  weight: ["300", "400", "500", "600", "700"],
+const anuphan = Anuphan({
+  weight: ["100", "200", "300", "400", "500", "600", "700"],
   subsets: ["thai", "latin"],
-  variable: "--font-thai",
+  variable: "--font-anuphan",
   display: "swap",
 });
 
@@ -38,7 +38,7 @@ export default function RootLayout({
     <html
       lang="th"
       suppressHydrationWarning
-      className={`${ibmPlexSansThai.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
+      className={`${anuphan.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <body className="min-h-screen flex flex-col font-sans selection:bg-[#0055fa] selection:text-white bg-white dark:bg-[#060911] text-slate-900 dark:text-slate-100 transition-colors duration-200">
         <ThemeProvider>

@@ -10,9 +10,9 @@ import ContactSection from "@/components/landing/ContactSection";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-[#060911] text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-[#060911] text-slate-900 dark:text-slate-100 transition-colors duration-200 overflow-x-clip">
       <Navbar />
-      <main className="flex-1">
+      <main className="flex-1 overflow-x-clip">
         <Hero />
         <HarnessSimulator />
         <PillarsSection />

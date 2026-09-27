@@ -51,7 +51,7 @@ const COMPARISONS = [
 
 export default function ComparisonSection() {
   return (
-    <section className="py-24 relative bg-white dark:bg-[#070b14] border-b border-slate-200/80 dark:border-white/5">
+    <section className="py-24 relative overflow-hidden bg-white dark:bg-[#070b14] border-b border-slate-200/80 dark:border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -62,7 +62,10 @@ export default function ComparisonSection() {
               <span>Why Enterprise Chooses Us</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              ทำไมต้อง NeuronKnowledge? แตกต่างจาก AI ทั่วไปอย่างไร
+              ทำไมต้อง NeuronKnowledge?
+            </h2>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold text-[#0055fa] dark:text-blue-400 tracking-tight">
+              แตกต่างจาก AI ทั่วไปอย่างไร
             </h2>
             <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
               เปรียบเทียบชัดเจนระหว่างการใช้ Public AI ทั่วไป กับแพลตฟอร์ม Enterprise Harness ที่ออกแบบมาเพื่อความแม่นยำทางธุรกิจ

@@ -31,7 +31,7 @@ export default function ContactSection() {
   };
 
   return (
-    <section id="contact" className="py-24 relative bg-slate-50/60 dark:bg-[#060a13] border-b border-slate-200/80 dark:border-white/5">
+    <section id="contact" className="py-24 relative overflow-hidden bg-slate-50/60 dark:bg-[#060a13] border-b border-slate-200/80 dark:border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Banner Slogan */}
