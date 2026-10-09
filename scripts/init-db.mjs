@@ -2,18 +2,31 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 
-// Read .env manually if dotenv is not installed
+// Load .env via Node's built-in loader or manual fallback
 const envPath = path.resolve(process.cwd(), '.env');
+if (typeof process.loadEnvFile === 'function' && fs.existsSync(envPath)) {
+  try {
+    process.loadEnvFile(envPath);
+  } catch {}
+}
+
 let postgresUrl = process.env.POSTGRES_URL;
 if (!postgresUrl && fs.existsSync(envPath)) {
   const content = fs.readFileSync(envPath, 'utf8');
-  for (const line of content.split('\n')) {
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
     const match = line.match(/^POSTGRES_URL=(.*)$/);
     if (match) {
-      postgresUrl = match[1].trim();
+      postgresUrl = match[1].trim().replace(/^["']|["']$/g, '');
       break;
     }
   }
+}
+
+// Fallback to default local PostgreSQL URL if not set
+if (!postgresUrl) {
+  postgresUrl = 'postgres://postgres:1234@localhost:5432/imc-neuronknowledge';
 }
 
 console.log('Target POSTGRES_URL:', postgresUrl);
@@ -34,7 +47,7 @@ async function main() {
     const defaultPool = new Pool({ connectionString: parsed.toString() });
     try {
       const checkRes = await defaultPool.query(
-        "SELECT 1 FROM pg_database WHERE datname = $1",
+        'SELECT 1 FROM pg_database WHERE datname = $1',
         [targetDbName]
       );
       if (checkRes.rows.length === 0) {
@@ -52,27 +65,33 @@ async function main() {
     pool = new Pool({ connectionString: postgresUrl });
   }
 
-  // Create users table
-  const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(255) NOT NULL,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      password_hash VARCHAR(255) NOT NULL,
-      role VARCHAR(50) NOT NULL DEFAULT 'user',
-      is_active BOOLEAN NOT NULL DEFAULT true,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    );
+  // Load and apply SQL schema from scripts/schema.sql
+  const schemaPath = path.resolve(process.cwd(), 'scripts', 'schema.sql');
+  if (!fs.existsSync(schemaPath)) {
+    throw new Error(`Schema file not found at: ${schemaPath}`);
+  }
 
-    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-  `;
+  console.log(`📄 Executing schema file: ${schemaPath}...`);
+  const schemaSql = fs.readFileSync(schemaPath, 'utf8');
 
-  await pool.query(createTableQuery);
-  console.log('✅ "users" table ensured in database.');
+  await pool.query(schemaSql);
+  console.log('✅ All tables, indexes, and initial data from schema.sql applied successfully!');
 
-  const countRes = await pool.query('SELECT COUNT(*) FROM users');
-  console.log(`Current user count: ${countRes.rows[0].count}`);
+  // Summary counts
+  try {
+    const [usersCount, skillsCount, agentsCount] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM users'),
+      pool.query('SELECT COUNT(*) FROM skills'),
+      pool.query('SELECT COUNT(*) FROM agents'),
+    ]);
+
+    console.log('\n📊 Database Status:');
+    console.log(` - Users:  ${usersCount.rows[0].count}`);
+    console.log(` - Skills: ${skillsCount.rows[0].count}`);
+    console.log(` - Agents: ${agentsCount.rows[0].count}`);
+  } catch (statErr) {
+    console.warn('Note: Could not retrieve summary counts:', statErr.message);
+  }
 
   await pool.end();
 }
