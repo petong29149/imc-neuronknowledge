@@ -1,6 +1,6 @@
 # API — Public API & Channels
 
-Public API สำหรับระบบภายนอก, API key, webhook และช่องทาง LINE / Teams / Slack (ยังไม่มีโค้ด)
+ช่องทางขายให้ลูกค้า: OpenAI-compatible API, NeuronKnowledge MCP server, API key, LINE OA, web widget และ webhook (ยังไม่มีโค้ด)
 
 | | |
 |---|---|
@@ -30,10 +30,12 @@ Public API สำหรับระบบภายนอก, API key, webhook �
 ## การ์ดที่ยังเปิดอยู่ (ภาพ ณ 2026-10-20 — สถานะล่าสุดดูใน Miro)
 | ID | งาน | สถานะ | Priority | Phase |
 |---|---|---|---|---|
-| API-01 | API key management | Not Started | P1 | Phase 3 |
-| API-02 | Public REST API v1 | Not Started | P1 | Phase 3 |
-| API-03 | OpenAPI 3.1 docs | Not Started | P1 | Phase 3 |
+| API-01 | API key management | Not Started | P0 | Phase 2 |
+| API-02 | OpenAI-compatible API (/v1/chat/completions) | Not Started | P0 | Phase 2 |
+| API-03 | OpenAPI 3.1 docs | Not Started | P1 | Phase 2 |
 | API-04 | Webhooks | Not Started | P2 | Phase 3 |
-| API-05 | LINE OA channel | Not Started | P2 | Phase 3 |
+| API-05 | LINE OA channel | Not Started | P1 | Phase 1 |
 | API-06 | Microsoft Teams / Slack channel | Not Started | P2 | Phase 3 |
 | API-07 | Workflow automation | Not Started | P2 | Phase 3 |
+| API-08 | NeuronKnowledge MCP server | Not Started | P0 | Phase 2 |
+| API-09 | Embeddable web chat widget | Not Started | P1 | Phase 2 |

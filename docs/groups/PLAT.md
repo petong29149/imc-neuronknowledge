@@ -57,4 +57,4 @@
 | PLAT-14 | Safe first-admin bootstrap | Not Started | P1 | Phase 0 |
 | PLAT-15 | Forgot password via email | Not Started | P2 | Phase 2 |
 | PLAT-16 | Email verification / domain allowlist | Not Started | P2 | Phase 2 |
-| PLAT-17 | Rename middleware.ts to proxy.ts (Next 16) | Not Started | P2 | Phase 0 |
+| PLAT-17 | Rename middleware.ts to proxy.ts (Next 16) | Not Started | P2 | Phase 2 |

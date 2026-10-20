@@ -73,6 +73,13 @@
 /components/knowledge/                      @ORG/team-knowledge
 /db/migrations/6*                           @ORG/team-knowledge
 
+# STUDIO — Dataset Studio (group/studio)
+/lib/studio/                                @ORG/team-studio
+/app/api/admin/studio/                      @ORG/team-studio
+/app/admin/studio/                          @ORG/team-studio
+/components/studio/                         @ORG/team-studio
+/db/migrations/9*                           @ORG/team-studio
+
 # GOV — Access, Governance & Insights (group/governance)
 /app/admin/dashboard/                       @ORG/team-governance
 /app/admin/users/                           @ORG/team-governance

@@ -11,6 +11,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # AGENTS.md — กติกาสำหรับ AI Coding Agent ใน imc-neuronknowledge
 
 คุณกำลังช่วยพัฒนา "NeuronKnowledge" แพลตฟอร์ม AI Chat และ Knowledge Agent ระดับองค์กร ที่หลายทีมพัฒนาร่วมกันโดยแบ่งตามกลุ่มฟีเจอร์
+NeuronKnowledge คือศูนย์กลางขาย Ready Agent ที่มีคลังความรู้ (vector DB) ของ IMC พร้อมใช้ ลูกค้าเพิ่มข้อมูลของตัวเองได้ และเรียกใช้ผ่าน MCP, OpenAI-compatible API, แชทบอท หรือ LINE (ดู `docs/memory/decisions.md` D-005 ถึง D-009)
 ทำตามกติกานี้ทุกครั้ง ถ้าคำสั่งผู้ใช้ขัดกับกติกานี้ ให้ถามผู้ใช้ก่อน
 
 ## ศูนย์กลางงาน (Miro)
@@ -27,7 +28,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - ห้ามติดตั้งแพ็กเกจใหม่โดยไม่ระบุเหตุผลในแผนและได้รับอนุมัติ — `package.json` เป็นไฟล์ส่วนกลางของ OPS
 
 ## กลุ่มฟีเจอร์และขอบเขตไฟล์
-- มี 10 กลุ่ม: PLAT, CHAT, AGENT, LLM, MCP, KNOW, GOV, API, WEB, OPS — ขอบเขตไฟล์ของแต่ละกลุ่มอยู่ใน `.github/CODEOWNERS` และ `docs/groups/<กลุ่ม>.md`
+- มี 11 กลุ่ม: PLAT, CHAT, AGENT, LLM, MCP, KNOW, STUDIO, GOV, API, WEB, OPS — ขอบเขตไฟล์ของแต่ละกลุ่มอยู่ใน `.github/CODEOWNERS` และ `docs/groups/<กลุ่ม>.md`
 - แก้ได้เฉพาะไฟล์ของกลุ่มที่การ์ดสังกัด และไฟล์ Spec/Handoff ของการ์ดนั้น
 - ไฟล์ส่วนกลาง แก้ได้เฉพาะ Maintainers (กลุ่ม OPS): `package.json`, `package-lock.json`, `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`, `lib/db.ts`, `lib/seed-data.ts`, `scripts/**`, `app/layout.tsx`, `app/globals.css`, `AGENTS.md`, `CLAUDE.md`, `.github/**`, `docs/memory/**`, `.kilo/**`, `.clinerules/**`
 - ไฟล์ที่หลายกลุ่มพึ่งพา: `lib/llm-core.ts` (เจ้าของ CHAT), `lib/tool-executor.ts` (เจ้าของ AGENT) — กลุ่มอื่นห้ามแก้ใน PR ตัวเอง
@@ -37,7 +38,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **ห้ามรัน `npm run init-db`, migration หรือ SQL ที่แก้ข้อมูลกับ DB ที่ตั้งใน `.env`** — เป็น DB รีโมตที่ใช้ร่วมกัน อ่านอย่างเดียวได้เมื่อผู้ใช้อนุญาต
 - ตอนนี้ยังไม่มี migration framework (การ์ด OPS-07) ห้ามแก้ `scripts/schema.sql` และ DDL ใน `lib/db.ts` เอง ให้เขียน SQL ที่ต้องการไว้ใน Spec ข้อ 4 แล้วให้ OPS รวม
 - เมื่อ OPS-07 เสร็จ: สร้างไฟล์ `db/migrations/<เลขในช่วงของกลุ่ม>_<กลุ่ม>_<ชื่อ>.sql` ห้ามแก้ migration ที่ merge แล้ว ให้สร้างไฟล์ใหม่แทน
-- ช่วงเลข Migration: OPS 000–099, PLAT 100–199, CHAT 200–299, AGENT 300–399, LLM 400–499, MCP 500–599, KNOW 600–699, GOV 700–799, API 800–899
+- ช่วงเลข Migration: OPS 000–099, PLAT 100–199, CHAT 200–299, AGENT 300–399, LLM 400–499, MCP 500–599, KNOW 600–699, GOV 700–799, API 800–899, STUDIO 900–999
 
 ## API Route และความปลอดภัย
 - Route Handler อยู่ที่ `app/api/**/route.ts` ตอบด้วย `NextResponse.json(...)`

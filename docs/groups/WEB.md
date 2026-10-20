@@ -35,7 +35,8 @@
 ## การ์ดที่ยังเปิดอยู่ (ภาพ ณ 2026-10-20 — สถานะล่าสุดดูใน Miro)
 | ID | งาน | สถานะ | Priority | Phase |
 |---|---|---|---|---|
-| WEB-04 | Contact form | Partial | P1 | Phase 0 |
-| WEB-05 | Align marketing claims with real features | Not Started | P1 | Phase 0 |
+| WEB-04 | Contact form | Partial | P0 | Phase 1 |
+| WEB-05 | Align marketing claims with real features | Not Started | P0 | Phase 1 |
 | WEB-06 | Remove dead TechStack section + broken links | Not Started | P2 | Phase 3 |
 | WEB-07 | Optimize large images | Not Started | P2 | Phase 3 |
+| WEB-08 | Public Ready Agent catalog page | Not Started | P1 | Phase 2 |

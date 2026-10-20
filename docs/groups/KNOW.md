@@ -38,9 +38,9 @@ Knowledge Engine: อัปโหลดเอกสาร, chunking, embedding, 
 | KNOW-05 | Vector store (pgvector or Qdrant) | Not Started | P0 | Phase 1 |
 | KNOW-06 | search_knowledge tool for agents | Not Started | P0 | Phase 1 |
 | KNOW-07 | Source citation in answers | Not Started | P0 | Phase 1 |
-| KNOW-08 | Knowledge admin UI | Not Started | P1 | Phase 2 |
-| KNOW-09 | Hybrid search + rerank | Not Started | P1 | Phase 2 |
+| KNOW-08 | Ingestion job queue + status / re-index API | Not Started | P0 | Phase 1 |
+| KNOW-09 | Hybrid search + rerank | Not Started | P0 | Phase 1 |
 | KNOW-10 | Ready Knowledge Library content | Not Started | P1 | Phase 2 |
 | KNOW-11 | Hybrid agent (IMC + org data) | Not Started | P1 | Phase 2 |
-| KNOW-12 | Connectors: Database, API, Website | Not Started | P2 | Phase 3 |
+| KNOW-12 | Connectors: Database, API, Website | Not Started | P1 | Phase 2 |
 | KNOW-13 | OCR for scanned documents | Not Started | P2 | Phase 3 |

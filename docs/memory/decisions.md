@@ -27,3 +27,29 @@
 - การตัดสินใจ: ห้ามรัน `npm run init-db`, migration หรือ SQL ที่แก้ข้อมูลกับ DB นี้ การเปลี่ยน schema ผ่านกลุ่ม OPS เท่านั้นจนกว่าจะมี migration framework (OPS-07)
 - เหตุผล: ทุกคนใช้ DB เดียวกัน การแก้ schema หรือ seed ซ้ำกระทบทุกทีม
 - ผลกระทบ: การแยก DB dev / staging ยังเป็นคำถามเปิดใน Miro
+
+## D-005 โมเดลธุรกิจ: ศูนย์กลางขาย Ready Agent
+- วันที่: 2026-10-20 • ผู้ตัดสินใจ: เจ้าของโปรเจกต์ • อ้างอิง: Miro frame "11 Business Model"
+- การตัดสินใจ: IMC ขาย Agent พร้อมใช้ที่มีคลังความรู้ (vector DB) ของ IMC ลูกค้าเลือกได้ 3 แบบ: (1) Ready Agent ใช้ได้ทันทีแม้ไม่มีข้อมูล (2) Ready Agent + ข้อมูลของบริษัทใน vector DB ส่วนตัว (3) ให้ IMC สร้าง vector DB และ agent ให้ตั้งแต่ต้น
+- ช่องทางเรียกใช้: MCP server, OpenAI-compatible API, แชทบอท (เว็บ / widget) และ LINE OA ของบริษัทลูกค้า
+- ผลกระทบ: ระบบต้องเป็นฝั่ง "ผู้ให้บริการ" ด้วย (กลุ่ม API: API-01, API-02, API-08) และแยกข้อมูลต่อบริษัท (GOV-11, GOV-17)
+
+## D-006 ลูกค้ากลุ่มแรก: นำเข้าส่งออก เพื่อเดโมที่งาน AI Expo
+- วันที่: 2026-10-20 • ผู้ตัดสินใจ: เจ้าของโปรเจกต์
+- การตัดสินใจ: Ready Agent ตัวแรกคือ Import-Export Agent (AGENT-20) เดโมที่งาน AI Expo ปลายเดือนพฤศจิกายน 2569 — Phase 1 ใน Miro คือ "AI Expo MVP" และ code freeze 1 สัปดาห์ก่อนงาน
+- ผลกระทบ: งาน Phase 0 + Phase 1 ต้องเสร็จก่อนงาน งานขายหลายบริษัท (tenant, API key, billing) อยู่ Phase 2 หลังงาน
+
+## D-007 ข้อมูลเข้าระบบ 2 ทาง
+- วันที่: 2026-10-20 • ผู้ตัดสินใจ: เจ้าของโปรเจกต์
+- การตัดสินใจ: (1) ทีมงานหรือลูกค้าโยนไฟล์ผ่านหน้า Dataset Studio แล้วเขียน use case + ตัวอย่างคำถาม AI ทำสรุป tag และ hybrid RAG ให้หลังบ้านด้วย API key (2) ข้อมูลที่เป็นไฟล์จำนวนมากหรืออยู่ใน database ให้ MCP ไปดึง (MCP-16, MCP-17)
+- ผลกระทบ: เพิ่มกลุ่ม STUDIO (D-009) ทีมงานรับบทบาท Knowledge Curator
+
+## D-008 ใช้ MCP ข้อมูลการค้าของ IMC ใน Import-Export Agent
+- วันที่: 2026-10-20 • ผู้ตัดสินใจ: เจ้าของโปรเจกต์ • อ้างอิง: MCP-15
+- การตัดสินใจ: MCP ของ IMC มี 3 tool: `customs_trade_data` (สถิติการค้าไทย กรมศุลกากร), `gta_trade_data` (Global Trade Atlas), `moc_news` (ข่าวและประกาศกระทรวงพาณิชย์ ค้นแบบ hybrid)
+- กติกาของ tool ที่ prompt ของ agent ต้องบังคับ: `moc_news` ต้องส่งคำถามเป็นภาษาอังกฤษ และห้าม AI เดาพิกัด HS / COMEX / COMIM เอง (ส่งชื่อสินค้าให้ tool ค้นพิกัด)
+
+## D-009 เพิ่มกลุ่ม STUDIO (รวม 11 กลุ่ม)
+- วันที่: 2026-10-20 • ผู้ตัดสินใจ: Maintainers • อ้างอิง: `docs/groups/STUDIO.md`, `.github/CODEOWNERS`
+- การตัดสินใจ: แยก Dataset Studio (หน้าหลังบ้านจัดการชุดข้อมูล use case ตัวอย่างคำถาม playground และ publish) ออกจาก KNOW ซึ่งดูแลเฉพาะ engine (ingest, index, retrieval, citation) branch `group/studio` migration 900–999
+- เหตุผล: KNOW ใหญ่เกินทีมเดียว และทั้งสองส่วนต้องเสร็จก่อน AI Expo พร้อมกัน

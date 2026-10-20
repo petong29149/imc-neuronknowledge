@@ -65,3 +65,4 @@
 | CHAT-24 | Share / export chat | Not Started | P2 | Phase 3 |
 | CHAT-25 | Token usage display for users | Not Started | P2 | Phase 3 |
 | CHAT-26 | Fix tool result mapped to wrong card | Not Started | P2 | Phase 1 |
+| CHAT-27 | Starter questions per agent | Not Started | P1 | Phase 1 |

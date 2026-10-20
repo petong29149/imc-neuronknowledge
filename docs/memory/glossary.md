@@ -17,6 +17,13 @@
 | Turn | คำถามหนึ่งครั้งของผู้ใช้กับคำตอบทั้งหมดที่ตามมา (รวม tool calls) | `lib/turn-context.ts` |
 | Chat run | งานสร้างคำตอบที่ยังทำงานอยู่ ต่อได้หลัง refresh | `lib/chat-runs.ts` |
 | Group | กลุ่มผู้ใช้ ใช้จำกัดว่าใครเห็น agent ไหน | `groups`, `group_members`, `agent_groups` |
+| Ready Agent | Agent พร้อมขายที่ผูกกับคลังความรู้ของ IMC ลูกค้าใช้ได้ทันที เช่น Import-Export Agent | ยังไม่มี (AGENT-20, AGENT-21) |
+| Dataset (ชุดข้อมูล) | กลุ่มเอกสารหนึ่งชุดใน Dataset Studio พร้อม metadata, use case และตัวอย่างคำถาม | ยังไม่มี (STUDIO-01) |
+| Use case | คำอธิบายว่าชุดข้อมูลใช้ตอบเรื่องอะไร อย่างไร ใช้สร้าง "มุมมอง" ของ agent | ยังไม่มี (STUDIO-03, STUDIO-07) |
+| Example question / Golden answer | ตัวอย่างคำถามของชุดข้อมูล และคำตอบที่ถูกต้องที่ใช้วัดความแม่นยำ | ยังไม่มี (STUDIO-03, STUDIO-09) |
+| Knowledge Curator | ทีมงาน IMC ที่ดูแลชุดข้อมูล use case เฉลย และตรวจคุณภาพ agent | role ใหม่ (STUDIO-15) |
+| Tenant (บริษัทลูกค้า) | บริษัทที่ซื้อ agent มีผู้ใช้และ vector collection ส่วนตัว | ยังไม่มี (GOV-11, GOV-17) |
+| IMC Trade Data MCP | MCP ของ IMC: `customs_trade_data`, `gta_trade_data`, `moc_news` | ใช้ผ่าน MCP-15 |
 | Ready Knowledge | คลังความรู้โดเมนที่ IMC เตรียมไว้ (Medical, Trade, Legal, Finance, HR) | ยังไม่มี (KNOW-10) |
 | Custom Knowledge | ความรู้จากข้อมูลขององค์กรลูกค้า (เอกสาร, DB, API, เว็บ) | ยังไม่มี (KNOW-01 ถึง 07) |
 | Hybrid Knowledge | Agent ที่ใช้ทั้ง Ready และ Custom Knowledge | ยังไม่มี (KNOW-11) |

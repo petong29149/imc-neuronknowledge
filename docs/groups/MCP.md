@@ -1,6 +1,6 @@
 # MCP — MCP Integration
 
-เชื่อมต่อ MCP server, sync และทดสอบ tool ให้ agent ใช้
+เชื่อมต่อ MCP server, sync และทดสอบ tool ให้ agent ใช้ รวมถึง MCP ข้อมูลการค้าของ IMC (customs_trade_data, gta_trade_data, moc_news) และการดึงข้อมูลลูกค้าจากไฟล์จำนวนมากหรือ database
 
 | | |
 |---|---|
@@ -54,3 +54,6 @@
 | MCP-12 | MCP OAuth | Not Started | P1 | Phase 2 |
 | MCP-13 | Remove stale tools on sync | Not Started | P2 | Phase 2 |
 | MCP-14 | Connection pooling + cancel on stop | Not Started | P2 | Phase 3 |
+| MCP-15 | Connect IMC trade MCP to Import-Export Agent | Not Started | P0 | Phase 1 |
+| MCP-16 | File-store sync via MCP | Not Started | P1 | Phase 2 |
+| MCP-17 | Database live query via MCP | Not Started | P1 | Phase 2 |

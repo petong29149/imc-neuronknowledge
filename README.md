@@ -238,7 +238,7 @@ imc-neuronknowledge/
 ## 👥 การพัฒนาเป็นทีม (Team Workflow)
 
 - **การ์ดงานและสถานะ**: Miro "NeuronKnowledge Project Hub" → Feature Tracker (https://miro.com/app/board/uXjVEXm3whU=/) การ์ดมี ID เช่น `CHAT-20`
-- **กลุ่มฟีเจอร์ 10 กลุ่ม** แต่ละกลุ่มมีทีมและ branch ของตัวเอง: ดู [docs/groups/](docs/groups/README.md) และ `.github/CODEOWNERS`
+- **กลุ่มฟีเจอร์ 11 กลุ่ม** แต่ละกลุ่มมีทีมและ branch ของตัวเอง: ดู [docs/groups/](docs/groups/README.md) และ `.github/CODEOWNERS`
 - **Branch**: `main` ← `group/<กลุ่ม>` ← `feat/<กลุ่ม>/<ID>-<slug>` (1 การ์ด = 1 branch = 1 PR)
 - **Workflow ต่อการ์ด**: Designer → คนอนุมัติ Spec → Builder → Reviewer → PR + AI Review bot → คน Approve ตามกติกาใน [AGENTS.md](AGENTS.md)
 - **Memory hub**: [docs/memory/](docs/memory/README.md) — AI ทุกตัวอ่านก่อนเริ่มงาน, แม่แบบ Spec/Handoff อยู่ที่ `docs/specs/` และ `docs/handoff/`

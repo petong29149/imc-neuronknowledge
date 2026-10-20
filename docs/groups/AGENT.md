@@ -81,3 +81,5 @@
 | AGENT-17 | Agent prompt versioning | Not Started | P2 | Phase 3 |
 | AGENT-18 | Skill import / export (SKILL.md) | Not Started | P2 | Phase 3 |
 | AGENT-19 | Per-agent built-in tool toggle | Not Started | P2 | Phase 3 |
+| AGENT-20 | Import-Export Ready Agent (Expo demo) | Not Started | P0 | Phase 1 |
+| AGENT-21 | Ready Agent catalog + publish | Not Started | P1 | Phase 2 |

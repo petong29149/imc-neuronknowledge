@@ -1,6 +1,6 @@
 # GOV — Access, Governance & Insights
 
-ผู้ใช้, กลุ่ม, สิทธิ์ และสถิติการใช้งาน รวมถึง audit log และ multi-tenant ในอนาคต
+ผู้ใช้, กลุ่ม, สิทธิ์ และสถิติการใช้งาน รวมถึงบริษัทลูกค้า (tenant), subscription, audit log และการนับการใช้งานเพื่อคิดเงิน
 
 | | |
 |---|---|
@@ -66,9 +66,11 @@
 | GOV-08 | Group owner role | Partial | P2 | Phase 2 |
 | GOV-09 | Usage storage | Partial | P1 | Phase 2 |
 | GOV-10 | Audit log | Not Started | P0 | Phase 2 |
-| GOV-11 | Multi-tenant separation | Not Started | P1 | Phase 2 |
+| GOV-11 | Multi-tenant separation | Not Started | P0 | Phase 2 |
 | GOV-12 | RBAC permission matrix | Not Started | P1 | Phase 2 |
 | GOV-13 | Usage quotas and alerts | Not Started | P2 | Phase 3 |
 | GOV-14 | PDPA: export / delete my data | Not Started | P2 | Phase 3 |
 | GOV-15 | Usage trend, filters, per-agent usage | Not Started | P2 | Phase 3 |
 | GOV-16 | Paginate user list | Not Started | P2 | Phase 3 |
+| GOV-17 | Customer organizations + agent subscriptions | Not Started | P0 | Phase 2 |
+| GOV-18 | Usage metering per customer and agent | Not Started | P1 | Phase 2 |

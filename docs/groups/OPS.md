@@ -45,6 +45,7 @@
 | OPS-08 | AI Review bot on PR | Not Started | P1 | Phase 0 |
 | OPS-09 | Stop schema DDL on every request | Not Started | P1 | Phase 0 |
 | OPS-10 | Stop logging DB password in init-db | Not Started | P1 | Phase 0 |
-| OPS-11 | Dockerfile + docker-compose | Not Started | P1 | Phase 2 |
+| OPS-11 | Dockerfile + docker-compose | Not Started | P0 | Phase 1 |
 | OPS-12 | Release management (SemVer) | Not Started | P1 | Phase 0 |
 | OPS-13 | Security headers | Not Started | P2 | Phase 2 |
+| OPS-14 | AI Expo demo environment | Not Started | P0 | Phase 1 |

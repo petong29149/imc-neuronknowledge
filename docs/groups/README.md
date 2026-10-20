@@ -11,6 +11,7 @@
 | [LLM](LLM.md) | LLM Gateway | `group/llm-gateway` | Team 4 | 400-499 |
 | [MCP](MCP.md) | MCP Integration | `group/mcp` | Team 5 | 500-599 |
 | [KNOW](KNOW.md) | Knowledge Engine (RAG) | `group/knowledge` | Team 6 | 600-699 |
+| [STUDIO](STUDIO.md) | Dataset Studio | `group/studio` | Team 10 | 900-999 |
 | [GOV](GOV.md) | Access, Governance & Insights | `group/governance` | Team 7 | 700-799 |
 | [API](API.md) | Public API & Channels | `group/integrations` | Team 8 | 800-899 |
 | [WEB](WEB.md) | Landing Site | `group/landing` | Team 9 | ไม่มี (ไม่แตะ DB) |
