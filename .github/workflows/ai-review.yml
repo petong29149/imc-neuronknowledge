@@ -1,0 +1,41 @@
+name: AI Review
+
+# รันเมื่อเปิด PR (ทั้งเข้า group/* และ main), เมื่อ PR จาก Draft พร้อมรีวิว, หรือเมื่อติด Label "ai-review" (ใช้สั่งรีวิวซ้ำ)
+on:
+  pull_request:
+    types: [opened, ready_for_review, labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      (github.event.action != 'labeled' || github.event.label.name == 'ai-review')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # ใช้สคริปต์จาก base branch ไม่ใช่จาก PR — กัน PR แก้สคริปต์เพื่อดึง Secret
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Run AI review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: node scripts/ai-review.mjs

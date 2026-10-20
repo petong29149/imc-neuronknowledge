@@ -1,0 +1,140 @@
+# ก่อนใช้งาน: แทน @ORG ด้วยชื่อ GitHub Organization จริง แล้วสร้าง Team ตามชื่อด้านล่าง (ต้องมีสิทธิ์ write ใน repo)
+# บรรทัดหลังมีผลเหนือบรรทัดก่อน — ขอบเขตของแต่ละกลุ่มอธิบายใน docs/groups/<กลุ่ม>.md
+
+# ค่าเริ่มต้น: ทุกไฟล์ต้องให้ Maintainer ตรวจ
+*                                           @ORG/maintainers
+
+# PLAT — Platform Core & Auth (group/platform)
+/app/login/                                 @ORG/team-platform
+/app/register/                              @ORG/team-platform
+/app/forbidden/                             @ORG/team-platform
+/app/api/auth/                              @ORG/team-platform
+/lib/auth.ts                                @ORG/team-platform
+/middleware.ts                              @ORG/team-platform
+/context/AuthContext.tsx                    @ORG/team-platform
+/app/theme-provider.tsx                     @ORG/team-platform
+/db/migrations/1*                           @ORG/team-platform
+
+# CHAT — Chat Experience (group/chat)
+/app/chat/                                  @ORG/team-chat
+/components/chat/                           @ORG/team-chat
+/app/api/chat/completions/                  @ORG/team-chat
+/app/api/chat/conversations/                @ORG/team-chat
+/lib/llm-core.ts                            @ORG/team-chat
+/lib/chat-runs.ts                           @ORG/team-chat
+/lib/chat-title.ts                          @ORG/team-chat
+/db/migrations/2*                           @ORG/team-chat
+
+# AGENT — Agent Factory (group/agent-factory)
+/lib/agents.ts                              @ORG/team-agent-factory
+/lib/agent-validation.ts                    @ORG/team-agent-factory
+/lib/skills.ts                              @ORG/team-agent-factory
+/lib/skills-constants.ts                    @ORG/team-agent-factory
+/lib/system-prompt.ts                       @ORG/team-agent-factory
+/lib/settings.ts                            @ORG/team-agent-factory
+/lib/core-prompt-lock.ts                    @ORG/team-agent-factory
+/lib/turn-context.ts                        @ORG/team-agent-factory
+/lib/tool-executor.ts                       @ORG/team-agent-factory
+/lib/builtin-tools/                         @ORG/team-agent-factory
+/app/admin/agents/                          @ORG/team-agent-factory
+/app/admin/skills/                          @ORG/team-agent-factory
+/app/admin/prompts/                         @ORG/team-agent-factory
+/components/admin/AdminAgentsSection.tsx    @ORG/team-agent-factory
+/components/admin/AdminSkillsSection.tsx    @ORG/team-agent-factory
+/components/admin/AdminPromptsSection.tsx   @ORG/team-agent-factory
+/app/api/admin/agents/                      @ORG/team-agent-factory
+/app/api/admin/skills/                      @ORG/team-agent-factory
+/app/api/admin/settings/                    @ORG/team-agent-factory
+/app/api/chat/agents/                       @ORG/team-agent-factory
+/db/migrations/3*                           @ORG/team-agent-factory
+
+# LLM — LLM Gateway (group/llm-gateway)
+/lib/llm-utils.ts                           @ORG/team-llm-gateway
+/app/admin/llm/                             @ORG/team-llm-gateway
+/components/admin/AdminLLMSection.tsx       @ORG/team-llm-gateway
+/app/api/admin/llm-connections/             @ORG/team-llm-gateway
+/app/api/admin/models/                      @ORG/team-llm-gateway
+/app/api/chat/models/                       @ORG/team-llm-gateway
+/db/migrations/4*                           @ORG/team-llm-gateway
+
+# MCP — MCP Integration (group/mcp)
+/lib/mcp.ts                                 @ORG/team-mcp
+/app/admin/mcp/                             @ORG/team-mcp
+/components/admin/AdminMCPSection.tsx       @ORG/team-mcp
+/app/api/admin/mcp-servers/                 @ORG/team-mcp
+/app/api/admin/mcp-tools/                   @ORG/team-mcp
+/app/api/admin/builtin-tools/               @ORG/team-mcp
+/db/migrations/5*                           @ORG/team-mcp
+
+# KNOW — Knowledge Engine (group/knowledge)
+/lib/knowledge/                             @ORG/team-knowledge
+/app/api/knowledge/                         @ORG/team-knowledge
+/app/admin/knowledge/                       @ORG/team-knowledge
+/components/knowledge/                      @ORG/team-knowledge
+/db/migrations/6*                           @ORG/team-knowledge
+
+# GOV — Access, Governance & Insights (group/governance)
+/app/admin/dashboard/                       @ORG/team-governance
+/app/admin/users/                           @ORG/team-governance
+/components/admin/AdminUsersWorkspace.tsx   @ORG/team-governance
+/components/admin/AdminUsersSection.tsx     @ORG/team-governance
+/components/admin/AdminUserTable.tsx        @ORG/team-governance
+/components/admin/AdminUserModals.tsx       @ORG/team-governance
+/components/admin/AdminUserFilter.tsx       @ORG/team-governance
+/components/admin/AdminGroupsSection.tsx    @ORG/team-governance
+/components/admin/AdminGroupTable.tsx       @ORG/team-governance
+/components/admin/AdminGroupModals.tsx      @ORG/team-governance
+/components/admin/AdminMetricCards.tsx      @ORG/team-governance
+/components/admin/usage/                    @ORG/team-governance
+/lib/usage.ts                               @ORG/team-governance
+/lib/usage-export.ts                        @ORG/team-governance
+/lib/usage-types.ts                         @ORG/team-governance
+/lib/audit.ts                               @ORG/team-governance
+/app/api/admin/users/                       @ORG/team-governance
+/app/api/admin/groups/                      @ORG/team-governance
+/app/api/admin/usage/                       @ORG/team-governance
+/db/migrations/7*                           @ORG/team-governance
+
+# API — Public API & Channels (group/integrations)
+/app/api/v1/                                @ORG/team-integrations
+/lib/api-keys.ts                            @ORG/team-integrations
+/docs/openapi.yaml                          @ORG/team-integrations @ORG/maintainers
+/db/migrations/8*                           @ORG/team-integrations
+
+# WEB — Landing Site (group/landing)
+/app/page.tsx                               @ORG/team-landing
+/components/landing/                        @ORG/team-landing
+/components/common/Navbar.tsx               @ORG/team-landing
+/components/common/Footer.tsx               @ORG/team-landing
+/components/common/ScrollReveal.tsx         @ORG/team-landing
+/public/                                    @ORG/team-landing
+
+# Spec และ Handoff ของแต่ละการ์ด — ผู้เรียน/สมาชิกทีมคนใดก็ Review ได้ (ไม่ต้องรอ Maintainer)
+/docs/specs/                                @ORG/participants
+/docs/handoff/                              @ORG/participants
+
+# ไฟล์ส่วนกลาง (OPS) — Maintainers เท่านั้น (ประกาศท้ายไฟล์เพื่อให้มีผลสูงสุด)
+/db/migrations/0*                           @ORG/maintainers
+/package.json                               @ORG/maintainers
+/package-lock.json                          @ORG/maintainers
+/next.config.ts                             @ORG/maintainers
+/tsconfig.json                              @ORG/maintainers
+/eslint.config.mjs                          @ORG/maintainers
+/lib/db.ts                                  @ORG/maintainers
+/lib/seed-data.ts                           @ORG/maintainers
+/scripts/                                   @ORG/maintainers
+/app/layout.tsx                             @ORG/maintainers
+/app/globals.css                            @ORG/maintainers
+/app/admin/layout.tsx                       @ORG/maintainers
+/components/admin/AdminShell.tsx            @ORG/maintainers
+/components/admin/AdminTabs.tsx             @ORG/maintainers
+/components/admin/AdminHeader.tsx           @ORG/maintainers
+/components/admin/AdminPageHeading.tsx      @ORG/maintainers
+/components/common/Modal.tsx                @ORG/maintainers
+/docs/groups/                               @ORG/maintainers
+/docs/memory/                               @ORG/maintainers
+/.github/                                   @ORG/maintainers
+/.kilo/                                     @ORG/maintainers
+/.clinerules/                               @ORG/maintainers
+/AGENTS.md                                  @ORG/maintainers
+/CLAUDE.md                                  @ORG/maintainers
