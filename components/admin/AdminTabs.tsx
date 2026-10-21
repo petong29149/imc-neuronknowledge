@@ -14,9 +14,8 @@ export interface AdminTab {
   exact?: boolean;
 }
 
-// MCP Hub is first: NeuronKnowledge is the MCP/knowledge hub; chat lives in
-// the separate chat system (see lib/site-links.ts), so the tabs that only
-// serve the in-app test console come after the hub tabs.
+// MCP Hub is first: NeuronKnowledge is the MCP/knowledge hub, so the hub tabs
+// come before the tabs for agents, prompts and chat settings.
 export const ADMIN_TABS: AdminTab[] = [
   { href: "/admin/mcp", label: "MCP Hub", shortLabel: "MCP", icon: Plug },
   { href: "/admin/agents", label: "AI Agents", shortLabel: "Agents", icon: Bot },

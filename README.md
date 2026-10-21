@@ -2,15 +2,6 @@
 
 ศูนย์กลาง **MCP Server & Knowledge Hub** สำหรับ AI Agent ระดับองค์กร พัฒนาด้วย Next.js (App Router), PostgreSQL และสถาปัตยกรรม Model Context Protocol (MCP) พร้อมคอนโซลแอดมินสำหรับจัดการ MCP Servers/Tools, Agents, Skills และผู้ใช้งาน
 
-### บทบาทของระบบ: แชทมี 2 แบบ
-
-| | **NeuronKnowledge (ระบบนี้)** | **imc-chat-aiagent** |
-| :--- | :--- | :--- |
-| บทบาท | Hub หลังบ้าน: MCP Servers/Tools, คลังความรู้, Agent, Governance | หน้าแชทของผู้ใช้ปลายทาง |
-| หน้าแชท | `/chat` = **Test console** ใช้ทดสอบ MCP Tools / Agent | **ใช้งานจริง** ที่ [moc.imcinstitute.com](https://moc.imcinstitute.com) |
-
-ปุ่ม "ทดสอบแชท" ในแอปจะพาไป `/chat` (ต้องเข้าสู่ระบบ) ส่วนปุ่ม "ใช้งานจริง" จะเปิด URL ของระบบแชทจริงในแท็บใหม่ ตั้งค่า URL ได้ด้วย `NEXT_PUBLIC_CHAT_URL` (ดูหัวข้อ Environment Variables) รายละเอียดทิศทางอยู่ใน [docs/MIRO_BOARD_IMPROVEMENTS.md](docs/MIRO_BOARD_IMPROVEMENTS.md)
-
 ---
 
 ## ✨ ไฮไลท์และฟีเจอร์หลัก (Features)
@@ -193,7 +184,6 @@ npm run dev
 | `CORE_PROMPT_PASSWORD_HASH` | แนะนำ | *(ว่าง)* | Base64-encoded bcrypt hash สำหรับปลดล็อก Core Prompt ในหน้า Admin |
 | `USAGE_TIMEZONE` | ทางเลือก | `Asia/Bangkok` | เขตเวลาในการคำนวณสถิติ Usage Report |
 | `MCP_TOOL_TIMEOUT_MS` | ทางเลือก | `600000` (10 นาที) | Timeout สำหรับการเรียกใช้ Tool ของ MCP Server (มิลลิวินาที) |
-| `NEXT_PUBLIC_CHAT_URL` | ทางเลือก | `https://moc.imcinstitute.com` | URL ของระบบแชทที่ใช้งานจริง ใช้กับปุ่ม "ใช้งานจริง" (ฝังตอน build) |
 
 ---
 

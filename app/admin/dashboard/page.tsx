@@ -11,7 +11,7 @@ export default function AdminDashboardPage() {
     <>
       <AdminPageHeading
         title="แดชบอร์ดการใช้งาน"
-        description="ติดตามจำนวนคำถาม การใช้ Tokens และผู้ใช้งานจาก Test console ของ NeuronKnowledge (สถิติแชทจริงอยู่ที่ระบบแชท)"
+        description="ติดตามจำนวนคำถาม การใช้ Tokens และผู้ใช้งานของระบบ"
       />
       <UsageDashboard />
     </>
