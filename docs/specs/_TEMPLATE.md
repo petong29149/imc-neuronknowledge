@@ -1,9 +1,8 @@
-# Spec: <ชื่องาน> (<ID การ์ด>)
+# Spec: <ชื่อหน้า> (<ID>)
 
-- กลุ่ม: <PLAT | CHAT | AGENT | LLM | MCP | KNOW | GOV | API | WEB | OPS> • Branch: `feat/<กลุ่ม>/<ID>-<slug>` จาก `group/<กลุ่ม>`
-- การ์ด Miro: <ลิงก์การ์ดใน Feature Tracker>
-- ผู้ออกแบบ: <Designer agent ที่ใช้ + Model> • ควบคุมโดย: @<github-username>
-- วันที่: <YYYY-MM-DD>
+- ผู้ใช้: <User | Creator | Admin | ทุกบทบาท (งานกลาง)> • Route: `<route>` • Branch: `page/<slug>` → PR เข้า `staging`
+- ขึ้นกับ: <ID ของงานที่ต้องเสร็จก่อน> • หน้าที่รอ: <ID ที่รองานนี้>
+- การ์ด Miro: <ลิงก์การ์ดใน Page Tracker> • เจ้าของ: @<github-username>
 
 ## 1. เป้าหมาย
 <1–3 บรรทัด: ทำอะไร ให้ใคร เพื่ออะไร>
@@ -12,25 +11,29 @@
 - ทำ: …
 - ไม่ทำ (นอกขอบเขต): …
 
-## 3. API / หน้าจอที่เกี่ยวข้อง
-| Method | Path | สิทธิ์ (`getSession` / `requireAdmin`) | Request | Response |
-|---|---|---|---|---|
+## 3. หน้าจอ
+- ส่วนต่างๆ ของหน้า และ 4 สถานะ: กำลังโหลด, ว่าง, error, มีข้อมูล
 
-หน้าจอ / component ที่แตะ: …
-
-## 4. ข้อมูล / Schema
-- ตาราง/คอลัมน์ที่อ่านหรือเขียน: …
-- SQL ที่ต้องเพิ่ม (ถ้ามี): เขียนไว้ที่นี่ให้ OPS รวม — หลัง OPS-07 ใช้ไฟล์ `db/migrations/<เลขในช่วงของกลุ่ม>_<กลุ่ม>_<ชื่อ>.sql`
-
-## 5. กติกาสิทธิ์และความปลอดภัย
-- …
-
-## 6. กรณีทดสอบ (จับคู่กับ Acceptance Criteria ของการ์ด)
-| # | Acceptance Criteria | กรณีทดสอบ (มือ หรือ automated เมื่อมี OPS-05) | ผลที่คาด |
+## 4. API
+| Method | Path | สิทธิ์ (`getSession` / `requireRole` / `requireAdmin`) | Request / Response |
 |---|---|---|---|
 
-## 7. ไฟล์ที่คาดว่าจะสร้าง/แก้ (ต้องอยู่ในขอบเขตของกลุ่ม ตาม `docs/groups/<กลุ่ม>.md`)
+## 5. ข้อมูล
+- ตาราง/คอลัมน์ที่อ่านหรือเขียน (อ้างอิง `docs/specs/00-data-model.md`) และ type จาก `lib/studio/types.ts`
+- ต้องการตาราง/คอลัมน์ใหม่: เขียน SQL ที่เสนอไว้ที่นี่ ให้ CORE-01 สร้าง migration
+
+## 6. สิทธิ์และความปลอดภัย
 - …
 
-## 8. คำถามที่ยังเปิด (ต้องให้คนตอบก่อน Build)
+## 7. Acceptance criteria และกรณีทดสอบ
+| # | เกณฑ์ | วิธีทดสอบ (มือบน staging หรือ automated) | ผลที่คาด |
+|---|---|---|---|
+
+## 8. ไฟล์ที่เป็นเจ้าของ (ตรงกับ `.github/CODEOWNERS`)
+- …
+
+## 9. Activity log ที่ต้องเขียน
+- ชื่อ action จากตารางใน `docs/specs/A01-admin-activity.md`
+
+## 10. คำถามที่ยังเปิด (ต้องให้คนตอบก่อน Build)
 - …

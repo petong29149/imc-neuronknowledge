@@ -10,6 +10,8 @@ interface AdminHeaderProps {
   theme: string | undefined;
   toggleTheme: () => void;
   logout: () => void;
+  /** Section badge next to the logo, e.g. "Creator Studio" when reused by StudioShell */
+  badge?: string;
 }
 
 export default function AdminHeader({
@@ -17,6 +19,7 @@ export default function AdminHeader({
   theme,
   toggleTheme,
   logout,
+  badge = "Admin Console",
 }: AdminHeaderProps) {
   return (
     <header className="py-3.5">
@@ -33,7 +36,7 @@ export default function AdminHeader({
 
           <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/20">
             <Shield className="w-3.5 h-3.5" />
-            Admin Console
+            {badge}
           </span>
         </div>
 

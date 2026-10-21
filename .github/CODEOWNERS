@@ -1,144 +1,117 @@
 # ก่อนใช้งาน: แทน @ORG ด้วยชื่อ GitHub Organization จริง แล้วสร้าง Team ตามชื่อด้านล่าง (ต้องมีสิทธิ์ write ใน repo)
-# บรรทัดหลังมีผลเหนือบรรทัดก่อน — ขอบเขตของแต่ละกลุ่มอธิบายใน docs/groups/<กลุ่ม>.md
+# 1 หน้า = 1 team (หรือ 1 คน) ตรงกับข้อ 8 "ไฟล์ที่เป็นเจ้าของ" ใน docs/specs/<ID>-<slug>.md
+# บรรทัดหลังมีผลเหนือบรรทัดก่อน: path ย่อยจึงอยู่หลัง path แม่เสมอ
 
-# ค่าเริ่มต้น: ทุกไฟล์ต้องให้ Maintainer ตรวจ
+# ค่าเริ่มต้น: ทุกไฟล์ต้องให้ Maintainer ตรวจ (รวมโค้ดแพลตฟอร์มเดิมที่ยังไม่มีหน้าเป็นเจ้าของ)
 *                                           @ORG/maintainers
 
-# PLAT — Platform Core & Auth (group/platform)
-/app/login/                                 @ORG/team-platform
-/app/register/                              @ORG/team-platform
-/app/forbidden/                             @ORG/team-platform
-/app/api/auth/                              @ORG/team-platform
-/lib/auth.ts                                @ORG/team-platform
-/middleware.ts                              @ORG/team-platform
-/context/AuthContext.tsx                    @ORG/team-platform
-/app/theme-provider.tsx                     @ORG/team-platform
-/db/migrations/1*                           @ORG/team-platform
+# P01 Agent Catalog — page/agent-catalog
+/app/agents/                                @ORG/page-agent-catalog
+/components/agents/                         @ORG/page-agent-catalog
+/app/api/agents/                            @ORG/page-agent-catalog
+/lib/agents-catalog.ts                      @ORG/page-agent-catalog
 
-# CHAT — Chat Experience (group/chat)
-/app/chat/                                  @ORG/team-chat
-/components/chat/                           @ORG/team-chat
-/app/api/chat/completions/                  @ORG/team-chat
-/app/api/chat/conversations/                @ORG/team-chat
-/lib/llm-core.ts                            @ORG/team-chat
-/lib/chat-runs.ts                           @ORG/team-chat
-/lib/chat-title.ts                          @ORG/team-chat
-/db/migrations/2*                           @ORG/team-chat
+# P02 Agent Detail — page/agent-detail
+/app/agents/[[]slug]/                       @ORG/page-agent-detail
+/components/agents/detail/                  @ORG/page-agent-detail
+/app/api/agents/[[]slug]/                   @ORG/page-agent-detail
 
-# AGENT — Agent Factory (group/agent-factory)
-/lib/agents.ts                              @ORG/team-agent-factory
-/lib/agent-validation.ts                    @ORG/team-agent-factory
-/lib/skills.ts                              @ORG/team-agent-factory
-/lib/skills-constants.ts                    @ORG/team-agent-factory
-/lib/system-prompt.ts                       @ORG/team-agent-factory
-/lib/settings.ts                            @ORG/team-agent-factory
-/lib/core-prompt-lock.ts                    @ORG/team-agent-factory
-/lib/turn-context.ts                        @ORG/team-agent-factory
-/lib/tool-executor.ts                       @ORG/team-agent-factory
-/lib/builtin-tools/                         @ORG/team-agent-factory
-/app/admin/agents/                          @ORG/team-agent-factory
-/app/admin/skills/                          @ORG/team-agent-factory
-/app/admin/prompts/                         @ORG/team-agent-factory
-/components/admin/AdminAgentsSection.tsx    @ORG/team-agent-factory
-/components/admin/AdminSkillsSection.tsx    @ORG/team-agent-factory
-/components/admin/AdminPromptsSection.tsx   @ORG/team-agent-factory
-/app/api/admin/agents/                      @ORG/team-agent-factory
-/app/api/admin/skills/                      @ORG/team-agent-factory
-/app/api/admin/settings/                    @ORG/team-agent-factory
-/app/api/chat/agents/                       @ORG/team-agent-factory
-/db/migrations/3*                           @ORG/team-agent-factory
+# P03 Chat with Citations — page/chat-citations
+/app/chat/                                  @ORG/page-chat-citations
+/components/chat/                           @ORG/page-chat-citations
+/app/api/chat/                              @ORG/page-chat-citations
+/lib/llm-core.ts                            @ORG/page-chat-citations @ORG/maintainers
+/lib/chat-runs.ts                           @ORG/page-chat-citations
+/lib/chat-title.ts                          @ORG/page-chat-citations
 
-# LLM — LLM Gateway (group/llm-gateway)
-/lib/llm-utils.ts                           @ORG/team-llm-gateway
-/app/admin/llm/                             @ORG/team-llm-gateway
-/components/admin/AdminLLMSection.tsx       @ORG/team-llm-gateway
-/app/api/admin/llm-connections/             @ORG/team-llm-gateway
-/app/api/admin/models/                      @ORG/team-llm-gateway
-/app/api/chat/models/                       @ORG/team-llm-gateway
-/db/migrations/4*                           @ORG/team-llm-gateway
+# S01 Studio Overview — page/studio-overview
+/app/studio/page.tsx                        @ORG/page-studio-overview
+/components/studio/overview/                @ORG/page-studio-overview
+/app/api/studio/overview/                   @ORG/page-studio-overview
 
-# MCP — MCP Integration (group/mcp)
-/lib/mcp.ts                                 @ORG/team-mcp
-/app/admin/mcp/                             @ORG/team-mcp
-/components/admin/AdminMCPSection.tsx       @ORG/team-mcp
-/app/api/admin/mcp-servers/                 @ORG/team-mcp
-/app/api/admin/mcp-tools/                   @ORG/team-mcp
-/app/api/admin/builtin-tools/               @ORG/team-mcp
-/db/migrations/5*                           @ORG/team-mcp
+# S02 Data Connections — page/studio-connections
+/app/studio/connections/                    @ORG/page-studio-connections
+/components/studio/connections/             @ORG/page-studio-connections
+/app/api/studio/connections/                @ORG/page-studio-connections
+/lib/studio/connections/                    @ORG/page-studio-connections
 
-# KNOW — Knowledge Engine (group/knowledge)
-/lib/knowledge/                             @ORG/team-knowledge
-/app/api/knowledge/                         @ORG/team-knowledge
-/app/admin/knowledge/                       @ORG/team-knowledge
-/components/knowledge/                      @ORG/team-knowledge
-/db/migrations/6*                           @ORG/team-knowledge
+# S03 Knowledge Sets — page/studio-knowledge-sets
+/app/studio/knowledge/                      @ORG/page-studio-knowledge-sets
+/components/studio/knowledge/               @ORG/page-studio-knowledge-sets
+/app/api/studio/knowledge-sets/             @ORG/page-studio-knowledge-sets
+/lib/studio/knowledge-sets.ts               @ORG/page-studio-knowledge-sets
 
-# STUDIO — Dataset Studio (group/studio)
-/lib/studio/                                @ORG/team-studio
-/app/api/admin/studio/                      @ORG/team-studio
-/app/admin/studio/                          @ORG/team-studio
-/components/studio/                         @ORG/team-studio
-/db/migrations/9*                           @ORG/team-studio
+# S04 Use Cases — page/studio-use-cases (ต้องอยู่หลัง S03 เพราะเป็น path ย่อย)
+/app/studio/knowledge/[[]id]/use-cases/     @ORG/page-studio-use-cases
+/components/studio/use-cases/               @ORG/page-studio-use-cases
+/app/api/studio/knowledge-sets/[[]id]/use-cases/ @ORG/page-studio-use-cases
+/app/api/studio/use-cases/                  @ORG/page-studio-use-cases
+/app/api/studio/examples/                   @ORG/page-studio-use-cases
+/lib/studio/use-cases.ts                    @ORG/page-studio-use-cases
 
-# GOV — Access, Governance & Insights (group/governance)
-/app/admin/dashboard/                       @ORG/team-governance
-/app/admin/users/                           @ORG/team-governance
-/components/admin/AdminUsersWorkspace.tsx   @ORG/team-governance
-/components/admin/AdminUsersSection.tsx     @ORG/team-governance
-/components/admin/AdminUserTable.tsx        @ORG/team-governance
-/components/admin/AdminUserModals.tsx       @ORG/team-governance
-/components/admin/AdminUserFilter.tsx       @ORG/team-governance
-/components/admin/AdminGroupsSection.tsx    @ORG/team-governance
-/components/admin/AdminGroupTable.tsx       @ORG/team-governance
-/components/admin/AdminGroupModals.tsx      @ORG/team-governance
-/components/admin/AdminMetricCards.tsx      @ORG/team-governance
-/components/admin/usage/                    @ORG/team-governance
-/lib/usage.ts                               @ORG/team-governance
-/lib/usage-export.ts                        @ORG/team-governance
-/lib/usage-types.ts                         @ORG/team-governance
-/lib/audit.ts                               @ORG/team-governance
-/app/api/admin/users/                       @ORG/team-governance
-/app/api/admin/groups/                      @ORG/team-governance
-/app/api/admin/usage/                       @ORG/team-governance
-/db/migrations/7*                           @ORG/team-governance
+# S05 Agent Builder — page/studio-agent-builder
+/app/studio/agents/                         @ORG/page-studio-agent-builder
+/components/studio/agents/                  @ORG/page-studio-agent-builder
+/app/api/studio/agents/                     @ORG/page-studio-agent-builder
+/lib/studio/agents.ts                       @ORG/page-studio-agent-builder
+/lib/studio/prompt-builder.ts               @ORG/page-studio-agent-builder
 
-# API — Public API & Channels (group/integrations)
-/app/api/v1/                                @ORG/team-integrations
-/lib/api-keys.ts                            @ORG/team-integrations
-/docs/openapi.yaml                          @ORG/team-integrations @ORG/maintainers
-/db/migrations/8*                           @ORG/team-integrations
+# S06 Playground and Evaluation — page/studio-playground (ต้องอยู่หลัง S05)
+/app/studio/agents/[[]id]/test/             @ORG/page-studio-playground
+/components/studio/playground/              @ORG/page-studio-playground
+/app/api/studio/agents/[[]id]/test/         @ORG/page-studio-playground
+/app/api/studio/agents/[[]id]/eval/         @ORG/page-studio-playground
+/app/api/studio/eval-runs/                  @ORG/page-studio-playground
+/lib/studio/eval.ts                         @ORG/page-studio-playground
 
-# WEB — Landing Site (group/landing)
-/app/page.tsx                               @ORG/team-landing
-/components/landing/                        @ORG/team-landing
-/components/common/Navbar.tsx               @ORG/team-landing
-/components/common/Footer.tsx               @ORG/team-landing
-/components/common/ScrollReveal.tsx         @ORG/team-landing
-/public/                                    @ORG/team-landing
+# A01 Activity Log — page/admin-activity
+/app/admin/activity/                        @ORG/page-admin-activity
+/components/admin/activity/                 @ORG/page-admin-activity
+/app/api/admin/activity/                    @ORG/page-admin-activity
 
-# Spec และ Handoff ของแต่ละการ์ด — ผู้เรียน/สมาชิกทีมคนใดก็ Review ได้ (ไม่ต้องรอ Maintainer)
+# CORE-02 Knowledge Engine — core/engine
+/lib/knowledge/                             @ORG/core-engine
+/lib/builtin-tools/search-knowledge.ts      @ORG/core-engine
+/app/api/studio/jobs/                       @ORG/core-engine
+/app/api/studio/search/                     @ORG/core-engine
+
+# CORE-03 Channels — core/channels
+/app/api/v1/                                @ORG/core-channels
+/app/api/mcp/                               @ORG/core-channels
+/app/api/channels/                          @ORG/core-channels
+/app/api/agents/keys/                       @ORG/core-channels
+/lib/channels/                              @ORG/core-channels
+/lib/api-keys.ts                            @ORG/core-channels
+
+# Spec และ Handoff — สมาชิกคนใดก็ review ได้
 /docs/specs/                                @ORG/participants
 /docs/handoff/                              @ORG/participants
 
-# ไฟล์ส่วนกลาง (OPS) — Maintainers เท่านั้น (ประกาศท้ายไฟล์เพื่อให้มีผลสูงสุด)
-/db/migrations/0*                           @ORG/maintainers
+# CORE-01 Foundation และไฟล์ส่วนกลาง — Maintainers เท่านั้น (ประกาศท้ายไฟล์เพื่อให้มีผลสูงสุด)
+/lib/auth.ts                                @ORG/maintainers
+/middleware.ts                              @ORG/maintainers
+/lib/db.ts                                  @ORG/maintainers
+/lib/activity.ts                            @ORG/maintainers
+/lib/crypto.ts                              @ORG/maintainers
+/lib/api.ts                                 @ORG/maintainers
+/lib/studio/types.ts                        @ORG/maintainers
+/lib/system-prompt.ts                       @ORG/maintainers
+/lib/turn-context.ts                        @ORG/maintainers
+/lib/tool-executor.ts                       @ORG/maintainers
+/db/migrations/                             @ORG/maintainers
+/docs/specs/00-data-model.md                @ORG/maintainers
+/components/studio/StudioShell.tsx          @ORG/maintainers
+/components/common/                         @ORG/maintainers
+/components/admin/AdminTabs.tsx             @ORG/maintainers
+/components/admin/AdminHeader.tsx           @ORG/maintainers
 /package.json                               @ORG/maintainers
 /package-lock.json                          @ORG/maintainers
 /next.config.ts                             @ORG/maintainers
 /tsconfig.json                              @ORG/maintainers
 /eslint.config.mjs                          @ORG/maintainers
-/lib/db.ts                                  @ORG/maintainers
-/lib/seed-data.ts                           @ORG/maintainers
 /scripts/                                   @ORG/maintainers
 /app/layout.tsx                             @ORG/maintainers
 /app/globals.css                            @ORG/maintainers
-/app/admin/layout.tsx                       @ORG/maintainers
-/components/admin/AdminShell.tsx            @ORG/maintainers
-/components/admin/AdminTabs.tsx             @ORG/maintainers
-/components/admin/AdminHeader.tsx           @ORG/maintainers
-/components/admin/AdminPageHeading.tsx      @ORG/maintainers
-/components/common/Modal.tsx                @ORG/maintainers
-/docs/groups/                               @ORG/maintainers
 /docs/memory/                               @ORG/maintainers
 /.github/                                   @ORG/maintainers
 /.kilo/                                     @ORG/maintainers

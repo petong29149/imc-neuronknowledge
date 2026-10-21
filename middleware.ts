@@ -45,8 +45,22 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 2. Protect Chat routes (require login)
-  if (pathname.startsWith('/chat')) {
+  // 2. Protect Creator Studio (/studio and /studio/*): admin or creator only
+  if (pathname.startsWith('/studio')) {
+    if (!sessionUser) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    if (sessionUser.role !== 'admin' && sessionUser.role !== 'creator') {
+      const forbiddenUrl = new URL('/forbidden', request.url);
+      return NextResponse.redirect(forbiddenUrl);
+    }
+  }
+
+  // 3. Protect Chat and Agent Catalog routes (require login)
+  if (pathname.startsWith('/chat') || pathname.startsWith('/agents')) {
     if (!sessionUser) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
@@ -54,12 +68,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 3. Redirect logged-in users away from /login and /register
+  // 4. Redirect logged-in users away from /login and /register
   if (pathname === '/login' || pathname === '/register') {
     if (sessionUser) {
       if (sessionUser.role === 'admin') {
         return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      } else if (sessionUser.role === 'creator') {
+        return NextResponse.redirect(new URL('/studio', request.url));
       } else {
+        // P01-agent-catalog switches this to /agents once the catalog page ships
         return NextResponse.redirect(new URL('/chat', request.url));
       }
     }
@@ -69,5 +86,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/chat/:path*', '/chat', '/login', '/register'],
+  matcher: [
+    '/admin/:path*',
+    '/studio/:path*',
+    '/studio',
+    '/chat/:path*',
+    '/chat',
+    '/agents/:path*',
+    '/agents',
+    '/login',
+    '/register',
+  ],
 };

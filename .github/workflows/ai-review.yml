@@ -1,6 +1,6 @@
 name: AI Review
 
-# รันเมื่อเปิด PR (ทั้งเข้า group/* และ main), เมื่อ PR จาก Draft พร้อมรีวิว, หรือเมื่อติด Label "ai-review" (ใช้สั่งรีวิวซ้ำ)
+# รันเมื่อเปิด PR (เข้า staging หรือ main), เมื่อ PR จาก Draft พร้อมรีวิว, หรือเมื่อติด Label "ai-review" (ใช้สั่งรีวิวซ้ำ)
 on:
   pull_request:
     types: [opened, ready_for_review, labeled]
@@ -35,6 +35,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}

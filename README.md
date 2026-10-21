@@ -237,11 +237,12 @@ imc-neuronknowledge/
 
 ## 👥 การพัฒนาเป็นทีม (Team Workflow)
 
-- **การ์ดงานและสถานะ**: Miro "NeuronKnowledge Project Hub" → Feature Tracker (https://miro.com/app/board/uXjVEXm3whU=/) การ์ดมี ID เช่น `CHAT-20`
-- **กลุ่มฟีเจอร์ 11 กลุ่ม** แต่ละกลุ่มมีทีมและ branch ของตัวเอง: ดู [docs/groups/](docs/groups/README.md) และ `.github/CODEOWNERS`
-- **Branch**: `main` ← `group/<กลุ่ม>` ← `feat/<กลุ่ม>/<ID>-<slug>` (1 การ์ด = 1 branch = 1 PR)
-- **Workflow ต่อการ์ด**: Designer → คนอนุมัติ Spec → Builder → Reviewer → PR + AI Review bot → คน Approve ตามกติกาใน [AGENTS.md](AGENTS.md)
-- **Memory hub**: [docs/memory/](docs/memory/README.md) — AI ทุกตัวอ่านก่อนเริ่มงาน, แม่แบบ Spec/Handoff อยู่ที่ `docs/specs/` และ `docs/handoff/`
+- **3 บทบาท**: User (`/agents`, `/chat`), Creator (`/studio`), Admin (`/admin`)
+- **งานและสถานะ**: Miro "NeuronKnowledge Studio" → Page Tracker (https://miro.com/app/board/uXjVEXL8TEM=/) งานมี ID ตามหน้า เช่น `S03`, `P01`, `CORE-01`
+- **Spec ของแต่ละหน้า**: [docs/specs/README.md](docs/specs/README.md) (สารบัญ, branch, ลำดับการ merge) และ data model กลางที่ [docs/specs/00-data-model.md](docs/specs/00-data-model.md)
+- **Branch**: `page/<slug>` หรือ `core/<ชื่อ>` → PR เข้า `staging` → ทดสอบบนเว็บ staging → Maintainer PR `staging` → `main` (production)
+- **Workflow ต่อหน้า**: Designer → คนอนุมัติ Spec → Builder → Reviewer → PR + AI Review bot → คน Approve ตามกติกาใน [AGENTS.md](AGENTS.md)
+- **Memory hub**: [docs/memory/](docs/memory/README.md) — AI ทุกตัวอ่านก่อนเริ่มงาน
 
 ---
 

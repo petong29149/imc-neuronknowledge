@@ -1,6 +1,6 @@
-# Handoff: <ID การ์ด> — <ชื่องาน>
+# Handoff: <ID> — <ชื่อหน้า>
 
-- การ์ด Miro: <ลิงก์> • Branch: `feat/<กลุ่ม>/<ID>-<slug>`
+- Spec: `docs/specs/<ID>-<slug>.md` • การ์ด Miro: <ลิงก์> • Branch: `page/<slug>` → PR เข้า `staging`
 
 ## 1) Design
 - ผู้ทำ: <Designer agent + Model>
@@ -23,10 +23,10 @@
 ## 4) Human decision
 - Reviewer (มนุษย์): @<username> • ผล: Approve / Request changes • วันที่: …
 - ข้อที่ AI Review พลาดหรือแจ้งเกินจริง (ใช้ปรับ lessons.md): …
-- [ ] ย้ายการ์ดใน Miro เป็น Done แล้ว
+- [ ] ย้ายการ์ดใน Miro เป็น On Staging (หลัง merge เข้า staging) และ Done (หลังขึ้น production)
 
-## เสนอการ์ดใหม่ (ถ้ามี — งานที่ต้องแก้ไฟล์ของกลุ่มอื่นหรือไฟล์ส่วนกลาง)
-- กลุ่ม: … • ชื่อการ์ด: … • เหตุผล: …
+## เสนอการ์ดใหม่ (ถ้ามี — งานที่ต้องแก้ไฟล์ของหน้าอื่น ของกลาง หรือ type กลาง)
+- เจ้าของไฟล์ (ID): … • สิ่งที่ต้องการ: … • เหตุผล: …
 
 ## เสนอเพิ่มใน memory (ถ้ามี)
 - ไฟล์: <decisions | conventions | lessons | glossary> • ข้อความที่เสนอ: …

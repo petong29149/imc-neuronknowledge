@@ -12,10 +12,10 @@
 
 ไฟล์ที่เกี่ยวข้องนอกโฟลเดอร์นี้:
 
-- `docs/groups/<กลุ่ม>.md` — ขอบเขตไฟล์ ตาราง และ API ของแต่ละกลุ่มฟีเจอร์
-- `docs/specs/<ID>-<slug>.md` — Spec ของการ์ดแต่ละใบ (Designer เขียน, คนอนุมัติ)
+- `docs/specs/README.md` — สารบัญหน้า, branch และลำดับการ merge
+- `docs/specs/<ID>-<slug>.md` — Spec ของแต่ละหน้า (Designer ขยาย, คนอนุมัติ) และ `docs/specs/00-data-model.md`
 - `docs/handoff/<ID>.md` — บันทึกส่งต่องาน Design → Build → Review → Human
-- การ์ดและสถานะงาน: Miro "NeuronKnowledge Project Hub" → Feature Tracker (https://miro.com/app/board/uXjVEXm3whU=/)
+- การ์ดและสถานะงาน: Miro "NeuronKnowledge Studio" → Page Tracker (https://miro.com/app/board/uXjVEXL8TEM=/)
 
 ## กติกา
 
