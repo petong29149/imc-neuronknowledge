@@ -1,6 +1,15 @@
 # 🧠 IMC NeuronKnowledge
 
-ระบบแพลตฟอร์ม AI Chat & Knowledge Management ระดับองค์กร (Enterprise AI Assistant) พัฒนาด้วย Next.js (App Router), PostgreSQL และรองรับสถาปัตยกรรม Model Context Protocol (MCP) พร้อมระบบจัดการความปลอดภัยและคอนโซลแอดมินเต็มรูปแบบ
+ศูนย์กลาง **MCP Server & Knowledge Hub** สำหรับ AI Agent ระดับองค์กร พัฒนาด้วย Next.js (App Router), PostgreSQL และสถาปัตยกรรม Model Context Protocol (MCP) พร้อมคอนโซลแอดมินสำหรับจัดการ MCP Servers/Tools, Agents, Skills และผู้ใช้งาน
+
+### บทบาทของระบบ: แชทมี 2 แบบ
+
+| | **NeuronKnowledge (ระบบนี้)** | **imc-chat-aiagent** |
+| :--- | :--- | :--- |
+| บทบาท | Hub หลังบ้าน: MCP Servers/Tools, คลังความรู้, Agent, Governance | หน้าแชทของผู้ใช้ปลายทาง |
+| หน้าแชท | `/chat` = **Test console** ใช้ทดสอบ MCP Tools / Agent | **ใช้งานจริง** ที่ [moc.imcinstitute.com](https://moc.imcinstitute.com) |
+
+ปุ่ม "ทดสอบแชท" ในแอปจะพาไป `/chat` (ต้องเข้าสู่ระบบ) ส่วนปุ่ม "ใช้งานจริง" จะเปิด URL ของระบบแชทจริงในแท็บใหม่ ตั้งค่า URL ได้ด้วย `NEXT_PUBLIC_CHAT_URL` (ดูหัวข้อ Environment Variables) รายละเอียดทิศทางอยู่ใน [docs/MIRO_BOARD_IMPROVEMENTS.md](docs/MIRO_BOARD_IMPROVEMENTS.md)
 
 ---
 
@@ -144,7 +153,7 @@ npm run dev
 1. **สร้างบัญชีผู้ดูแลระบบ (First User = Admin)**:
    - เข้าไปที่ `/register` หรือคลิกปุ่ม "สมัครสมาชิก"
    - **กฎของระบบ**: ผู้ใช้งานคนแรกสุดที่ลงทะเบียนจะได้รับบทบาท **Admin** โดยอัตโนมัติ!
-   - เมื่อสมัครเสร็จแล้ว ระบบจะพาเข้าหน้า `/admin/dashboard` ทันที
+   - เมื่อสมัครเสร็จแล้ว ระบบจะพาเข้าหน้า `/admin/mcp` (MCP Hub) ทันที
 
 2. **ตั้งค่าการเชื่อมต่อโมเดล LLM**:
    - ไปที่เมนู **Admin > LLM Connections**
@@ -156,8 +165,9 @@ npm run dev
 3. **(ทางเลือก) เชื่อมต่อ MCP Servers**:
    - ไปที่เมนู **Admin > MCP Servers** เพื่อเชื่อมต่อ Tool Server ภายนอก และคลิก "Sync Tools"
 
-4. **เริ่มใช้งาน Chat**:
-   - เข้าไปที่ `/chat` เพื่อเริ่มสนทนา, เลือก Agent, ปรับ Effort Level หรือสั่งงานเครื่องมือ
+4. **ทดสอบด้วย Test console**:
+   - เข้าไปที่ `/chat` เพื่อทดสอบ MCP Tools และ Agent ที่ตั้งค่าไว้ (เลือก Agent, ปรับ Effort Level, ดูผล tool call)
+   - การใช้งานจริงของผู้ใช้ปลายทางอยู่ที่ระบบแชท (ค่าเริ่มต้น `https://moc.imcinstitute.com`)
 
 ---
 
@@ -183,6 +193,7 @@ npm run dev
 | `CORE_PROMPT_PASSWORD_HASH` | แนะนำ | *(ว่าง)* | Base64-encoded bcrypt hash สำหรับปลดล็อก Core Prompt ในหน้า Admin |
 | `USAGE_TIMEZONE` | ทางเลือก | `Asia/Bangkok` | เขตเวลาในการคำนวณสถิติ Usage Report |
 | `MCP_TOOL_TIMEOUT_MS` | ทางเลือก | `600000` (10 นาที) | Timeout สำหรับการเรียกใช้ Tool ของ MCP Server (มิลลิวินาที) |
+| `NEXT_PUBLIC_CHAT_URL` | ทางเลือก | `https://moc.imcinstitute.com` | URL ของระบบแชทที่ใช้งานจริง ใช้กับปุ่ม "ใช้งานจริง" (ฝังตอน build) |
 
 ---
 

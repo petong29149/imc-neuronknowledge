@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartColumn, Users, Brain, Server, Sparkles, Bot, ScrollText } from "lucide-react";
+import { ChartColumn, Users, Brain, Plug, Sparkles, Bot, ScrollText } from "lucide-react";
 
 export interface AdminTab {
   href: string;
@@ -12,13 +12,16 @@ export interface AdminTab {
   icon: typeof Users;
 }
 
+// MCP Hub is first: NeuronKnowledge is the MCP/knowledge hub; chat lives in
+// the separate chat system (see lib/site-links.ts), so the tabs that only
+// serve the in-app test console come after the hub tabs.
 export const ADMIN_TABS: AdminTab[] = [
+  { href: "/admin/mcp", label: "MCP Hub", shortLabel: "MCP", icon: Plug },
+  { href: "/admin/agents", label: "AI Agents", shortLabel: "Agents", icon: Bot },
+  { href: "/admin/skills", label: "Skills", shortLabel: "Skills", icon: Sparkles },
   { href: "/admin/dashboard", label: "แดชบอร์ด", shortLabel: "Dashboard", icon: ChartColumn },
   { href: "/admin/users", label: "จัดการผู้ใช้งาน", shortLabel: "ผู้ใช้", icon: Users },
   { href: "/admin/llm", label: "LLM & Models", shortLabel: "LLM", icon: Brain },
-  { href: "/admin/mcp", label: "MCP Servers", shortLabel: "MCP", icon: Server },
-  { href: "/admin/agents", label: "AI Agents", shortLabel: "Agents", icon: Bot },
-  { href: "/admin/skills", label: "Skills", shortLabel: "Skills", icon: Sparkles },
   { href: "/admin/prompts", label: "System Prompt", shortLabel: "Prompt", icon: ScrollText },
 ];
 

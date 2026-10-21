@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
-import { BookOpen, ShieldCheck, Heart, Sparkles, Terminal } from "lucide-react";
+import { BookOpen, ShieldCheck, ExternalLink, FlaskConical } from "lucide-react";
+import Link from "next/link";
+import { CHAT_PRODUCTION_HOST, CHAT_PRODUCTION_URL, CHAT_TEST_PATH } from "@/lib/site-links";
 
 export default function Footer() {
   return (
@@ -19,13 +21,13 @@ export default function Footer() {
               <div className="flex items-center gap-1.5 font-bold text-base text-slate-900 dark:text-white">
                 <span>NeuronKnowledge</span>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#fec921]/15 text-[#b48206] dark:text-[#fec921] border border-[#fec921]/30">
-                  Platform
+                  MCP Hub
                 </span>
               </div>
             </div>
 
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed">
-              แพลตฟอร์ม AI Harness ระดับองค์กรที่ผสานคลังความรู้พร้อมใช้ (Ready Knowledge) และข้อมูลองค์กร (Custom Data) ด้วย Qdrant Vector Engine และ OpenRouter เพื่อสร้าง AI Agent ที่แม่นยำ ไม่เพี้ยน และตรวจสอบได้จริง
+              ศูนย์กลาง MCP Server และคลังความรู้สำหรับ AI Agent ขององค์กร รวมเครื่องมือ (MCP Tools) และ Ready Knowledge ของ IMC ไว้ที่เดียว แล้วเปิดให้ระบบแชทและ MCP client อื่นเรียกใช้ได้อย่างตรวจสอบย้อนกลับได้
             </p>
 
             <div className="text-[11px] text-slate-500">
@@ -51,38 +53,45 @@ export default function Footer() {
           {/* Col 4: Platform & Architecture */}
           <div>
             <div className="font-semibold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-3">
-              Platform Architecture
+              MCP Hub
             </div>
             <ul className="space-y-2">
-              <li><a href="#simulator" className="hover:text-[#0055fa] transition-colors">Open WebUI Simulator</a></li>
-              <li><a href="#architecture" className="hover:text-[#0055fa] transition-colors">Knowledge Flow Engine</a></li>
-              <li><a href="#tech-stack" className="hover:text-[#0055fa] transition-colors">Qdrant Vector Database</a></li>
-              <li><a href="#tech-stack" className="hover:text-[#0055fa] transition-colors">OpenRouter Gateway</a></li>
-              <li><a href="#tech-stack" className="hover:text-[#0055fa] transition-colors">PostgreSQL Row-Level Security</a></li>
+              <li><a href="#mcp" className="hover:text-[#0055fa] transition-colors">MCP Servers & Tools</a></li>
+              <li><a href="#chat-channels" className="hover:text-[#0055fa] transition-colors">ช่องทางแชท: ทดสอบ / ใช้งานจริง</a></li>
+              <li><a href="#architecture" className="hover:text-[#0055fa] transition-colors">Knowledge Flow</a></li>
+              <li><a href="#simulator" className="hover:text-[#0055fa] transition-colors">ตัวอย่างจำลอง (Preview)</a></li>
             </ul>
           </div>
 
-          {/* Col 5: Security & Governance */}
+          {/* Col 5: Chat channels */}
           <div>
             <div className="font-semibold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-3">
-              Enterprise Governance
+              Chat
             </div>
             <ul className="space-y-2">
-              <li className="flex items-center gap-1.5 text-slate-500">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Source Citation 100%</span>
+              <li>
+                <a
+                  href={CHAT_PRODUCTION_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 hover:text-[#0055fa] transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5 text-[#0055fa]" />
+                  <span>ใช้งานจริง · {CHAT_PRODUCTION_HOST}</span>
+                </a>
               </li>
-              <li className="flex items-center gap-1.5 text-slate-500">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Multi-tenant Isolation</span>
+              <li>
+                <Link
+                  href={CHAT_TEST_PATH}
+                  className="inline-flex items-center gap-1.5 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
+                >
+                  <FlaskConical className="w-3.5 h-3.5 text-amber-500" />
+                  <span>ทดสอบ · Test console</span>
+                </Link>
               </li>
-              <li className="flex items-center gap-1.5 text-slate-500">
+              <li className="flex items-center gap-1.5 text-slate-500 pt-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>RBAC & Audit Trails</span>
-              </li>
-              <li className="flex items-center gap-1.5 text-slate-500">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>PDPA & ISO Compliant</span>
+                <span>Admin Console สำหรับผู้ดูแลระบบ</span>
               </li>
             </ul>
           </div>
@@ -97,8 +106,7 @@ export default function Footer() {
 
           <div className="flex items-center gap-4 text-[11px]">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>All Systems Operational • Next.js 16 • Qdrant Engine</span>
+              <span>Knowledge &amp; MCP Hub • Next.js 16</span>
             </div>
           </div>
         </div>
