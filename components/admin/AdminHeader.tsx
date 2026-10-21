@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { BookOpen, Shield, Home, Sun, Moon, LogOut } from "lucide-react";
 import { User } from "@/context/AuthContext";
-import { ProductionChatLink, TestChatLink } from "@/components/common/ChatLinks";
 
 interface AdminHeaderProps {
   currentUser: User | null;
@@ -42,16 +41,6 @@ export default function AdminHeader({
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3">
-
-          {/* Chat has two meanings: try it here (test) or use it for real elsewhere */}
-          <TestChatLink variant="secondary" display="hidden sm:inline-flex">
-            ทดสอบแชท
-          </TestChatLink>
-
-          <ProductionChatLink variant="primary" display="hidden md:inline-flex">
-            ใช้งานจริง
-          </ProductionChatLink>
-
           <Link
             href="/"
             title="กลับสู่หน้าหลัก"

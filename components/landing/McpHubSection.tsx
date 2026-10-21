@@ -16,8 +16,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import ScrollReveal from "@/components/common/ScrollReveal";
-import { ProductionChatLink } from "@/components/common/ChatLinks";
-import { CHAT_PRODUCTION_HOST } from "@/lib/site-links";
 
 type Status = "ready" | "building" | "planned";
 
@@ -140,7 +138,7 @@ const FLOW: { icon: LucideIcon; label: string; title: string; items: string[]; a
     icon: BookOpen,
     label: "ผู้เรียกใช้ผ่าน MCP",
     title: "MCP Clients",
-    items: [`แชทจริง · ${CHAT_PRODUCTION_HOST}`, "Claude Desktop / MCP client อื่น", "ระบบของลูกค้า"],
+    items: ["แชทบอทและ LINE OA", "Claude Desktop / MCP client อื่น", "ระบบของลูกค้า"],
     accent: "text-amber-700 dark:text-[#fec921] bg-amber-50 dark:bg-amber-500/10",
   },
 ];
@@ -311,9 +309,6 @@ export default function McpHubSection() {
               <Server className="w-4 h-4" />
               <span>จัดการ MCP ใน Admin Console</span>
             </Link>
-            <ProductionChatLink variant="secondary" size="md" className="w-full sm:w-auto">
-              {`ดูการใช้งานจริงที่ ${CHAT_PRODUCTION_HOST}`}
-            </ProductionChatLink>
           </div>
           <p className="mt-3 text-center text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
             <FlaskConical className="w-3.5 h-3.5" aria-hidden="true" />

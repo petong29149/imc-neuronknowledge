@@ -15,11 +15,11 @@ import {
   LogIn,
   ChevronRight,
   Plug,
-  MessagesSquare,
   Layers,
-  Database
+  Database,
+  Bot,
+  Blocks
 } from "lucide-react";
-import { ProductionChatLink, TestChatLink } from "@/components/common/ChatLinks";
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
@@ -59,10 +59,23 @@ export default function Navbar() {
 
   const navLinks = [
     { label: "MCP Hub", href: "#mcp", badge: "Tools", icon: Plug },
-    { label: "ช่องทางแชท", href: "#chat-channels", icon: MessagesSquare },
     { label: "สถาปัตยกรรม", href: "#architecture", icon: Layers },
     { label: "คลังความรู้", href: "#library", icon: Database }
   ];
+
+  // Where each role works: everyone gets the agent catalog, creators and
+  // admins get the Studio, admins also get the Admin Console
+  const roleLinks = user
+    ? [
+        { label: "Agents", drawerLabel: "Agent ที่ใช้ได้", href: "/agents", icon: Bot },
+        ...(user.role === "admin" || user.role === "creator"
+          ? [{ label: "Studio", drawerLabel: "Creator Studio", href: "/studio", icon: Blocks }]
+          : []),
+        ...(user.role === "admin"
+          ? [{ label: "Admin", drawerLabel: "เข้าสู่ Admin Console", href: "/admin/mcp", icon: ShieldCheck }]
+          : []),
+      ]
+    : [];
 
   return (
     <header 
@@ -137,34 +150,23 @@ export default function Navbar() {
               )}
             </button>
 
-            {/* Real chat (moc.imcinstitute.com): available to everyone, guests included */}
-            {/* Logged-in phones also show the avatar, so the button moves into the menu there */}
-            <ProductionChatLink
-              variant="primary"
-              display={user ? "hidden sm:inline-flex" : "inline-flex"}
-              className="shrink-0"
-            >
-              ใช้งานจริง
-            </ProductionChatLink>
-
             {/* User Session State */}
             {user ? (
               <div className="flex items-center gap-1 sm:gap-1.5 xl:gap-2 shrink-0">
-                {/* Admin button - Desktop only (hidden on tablet & mobile, accessible in mobile menu) */}
-                {user.role === "admin" && (
-                  <Link
-                    href="/admin/mcp"
-                    className="hidden lg:inline-flex items-center gap-1.5 px-2 xl:px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0055fa] dark:hover:text-blue-400 bg-slate-100/80 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 rounded-xl border border-slate-200/70 dark:border-white/10 transition-all shrink-0"
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#0055fa]" />
-                    <span>Admin</span>
-                  </Link>
-                )}
-
-                {/* Test console (in-app chat for trying MCP tools) - Tablet & Desktop */}
-                <TestChatLink variant="secondary" display="hidden md:inline-flex" className="shrink-0">
-                  ทดสอบ
-                </TestChatLink>
+                {/* Role links - Desktop only (hidden on tablet & mobile, accessible in mobile menu) */}
+                {roleLinks.map((link) => {
+                  const IconComponent = link.icon;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="hidden lg:inline-flex items-center gap-1.5 px-2 xl:px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0055fa] dark:hover:text-blue-400 bg-slate-100/80 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 rounded-xl border border-slate-200/70 dark:border-white/10 transition-all shrink-0"
+                    >
+                      <IconComponent className="w-3.5 h-3.5 text-[#0055fa]" />
+                      <span>{link.label}</span>
+                    </Link>
+                  );
+                })}
 
                 {/* User profile pill - Desktop & Tablet */}
                 <div 
@@ -309,10 +311,12 @@ export default function Navbar() {
                           className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
                             user.role === "admin"
                               ? "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300/40 dark:border-amber-500/30"
-                              : "bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300"
+                              : user.role === "creator"
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300/40 dark:border-emerald-500/30"
+                                : "bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-slate-300"
                           }`}
                         >
-                          {user.role === "admin" ? "Admin" : "Member"}
+                          {user.role === "admin" ? "Admin" : user.role === "creator" ? "Creator" : "Member"}
                         </span>
                       </div>
                       {user.email && (
@@ -324,32 +328,20 @@ export default function Navbar() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-2 pt-1">
-                    <ProductionChatLink
-                      variant="primary"
-                      className="w-full !py-2.5"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      ใช้งานแชทจริง
-                    </ProductionChatLink>
-
-                    <TestChatLink
-                      variant="secondary"
-                      className="w-full !py-2.5"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      ทดสอบแชท (Test console)
-                    </TestChatLink>
-
-                    {user.role === "admin" && (
-                      <Link
-                        href="/admin/mcp"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 transition-all"
-                      >
-                        <ShieldCheck className="w-4 h-4 text-[#0055fa]" />
-                        <span>เข้าสู่ Admin Console</span>
-                      </Link>
-                    )}
+                    {roleLinks.map((link) => {
+                      const IconComponent = link.icon;
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 transition-all"
+                        >
+                          <IconComponent className="w-4 h-4 text-[#0055fa]" />
+                          <span>{link.drawerLabel}</span>
+                        </Link>
+                      );
+                    })}
 
                     <button
                       onClick={() => {
@@ -365,13 +357,6 @@ export default function Navbar() {
                 </div>
               ) : (
                 <div className="pt-2.5 border-t border-slate-200/70 dark:border-white/10 grid grid-cols-2 gap-2">
-                  <ProductionChatLink
-                    variant="primary"
-                    className="col-span-2 !py-2.5"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    ใช้งานแชทจริง
-                  </ProductionChatLink>
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}

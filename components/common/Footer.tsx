@@ -1,16 +1,14 @@
 "use client";
 
 import React from "react";
-import { BookOpen, ShieldCheck, ExternalLink, FlaskConical } from "lucide-react";
-import Link from "next/link";
-import { CHAT_PRODUCTION_HOST, CHAT_PRODUCTION_URL, CHAT_TEST_PATH } from "@/lib/site-links";
+import { BookOpen } from "lucide-react";
 
 export default function Footer() {
   return (
     <footer className="bg-white dark:bg-[#05080f] border-t border-slate-200 dark:border-white/10 pt-16 pb-12 text-slate-600 dark:text-slate-400 text-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-200 dark:border-white/10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12 border-b border-slate-200 dark:border-white/10">
           
           {/* Col 1 & 2: Brand & Mission */}
           <div className="lg:col-span-2 space-y-4">
@@ -57,42 +55,8 @@ export default function Footer() {
             </div>
             <ul className="space-y-2">
               <li><a href="#mcp" className="hover:text-[#0055fa] transition-colors">MCP Servers & Tools</a></li>
-              <li><a href="#chat-channels" className="hover:text-[#0055fa] transition-colors">ช่องทางแชท: ทดสอบ / ใช้งานจริง</a></li>
               <li><a href="#architecture" className="hover:text-[#0055fa] transition-colors">Knowledge Flow</a></li>
               <li><a href="#simulator" className="hover:text-[#0055fa] transition-colors">ตัวอย่างจำลอง (Preview)</a></li>
-            </ul>
-          </div>
-
-          {/* Col 5: Chat channels */}
-          <div>
-            <div className="font-semibold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-3">
-              Chat
-            </div>
-            <ul className="space-y-2">
-              <li>
-                <a
-                  href={CHAT_PRODUCTION_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 hover:text-[#0055fa] transition-colors"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 text-[#0055fa]" />
-                  <span>ใช้งานจริง · {CHAT_PRODUCTION_HOST}</span>
-                </a>
-              </li>
-              <li>
-                <Link
-                  href={CHAT_TEST_PATH}
-                  className="inline-flex items-center gap-1.5 hover:text-amber-700 dark:hover:text-amber-300 transition-colors"
-                >
-                  <FlaskConical className="w-3.5 h-3.5 text-amber-500" />
-                  <span>ทดสอบ · Test console</span>
-                </Link>
-              </li>
-              <li className="flex items-center gap-1.5 text-slate-500 pt-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Admin Console สำหรับผู้ดูแลระบบ</span>
-              </li>
             </ul>
           </div>
 

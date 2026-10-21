@@ -21,8 +21,6 @@ import {
   X
 } from "lucide-react";
 import ScrollReveal from "@/components/common/ScrollReveal";
-import { ProductionChatLink, TestChatLink } from "@/components/common/ChatLinks";
-import { CHAT_PRODUCTION_HOST } from "@/lib/site-links";
 
 interface AgentPreset {
   id: string;
@@ -694,14 +692,6 @@ export default function HarnessSimulator() {
             <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
               หน้านี้เป็นภาพจำลองเพื่อสาธิตเท่านั้น ไม่ได้เรียก MCP Tools หรือโมเดลจริง
             </p>
-            <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <ProductionChatLink variant="primary" size="md" className="w-full sm:w-auto">
-                {`ลองใช้ของจริงที่ ${CHAT_PRODUCTION_HOST}`}
-              </ProductionChatLink>
-              <TestChatLink variant="secondary" size="md" className="w-full sm:w-auto">
-                ทดสอบ Tools (Test console)
-              </TestChatLink>
-            </div>
           </div>
         </ScrollReveal>
 

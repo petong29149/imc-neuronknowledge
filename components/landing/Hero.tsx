@@ -10,8 +10,6 @@ import {
   MessagesSquare,
 } from "lucide-react";
 import ScrollReveal from "@/components/common/ScrollReveal";
-import { ProductionChatLink, TestChatLink } from "@/components/common/ChatLinks";
-import { CHAT_PRODUCTION_HOST } from "@/lib/site-links";
 
 export default function Hero() {
   return (
@@ -60,8 +58,6 @@ export default function Hero() {
                 รวม <strong className="text-slate-900 dark:text-white font-medium">MCP Tools</strong> และ{" "}
                 <strong className="text-slate-900 dark:text-white font-medium">คลังความรู้ของ IMC Institute</strong>{" "}
                 ไว้ที่เดียว แล้วเปิดให้ระบบแชทและ MCP client อื่นเรียกใช้ พร้อมแหล่งอ้างอิงที่ตรวจสอบย้อนกลับได้
-                ส่วนหน้าแชทสำหรับผู้ใช้จริงอยู่ที่{" "}
-                <strong className="text-slate-900 dark:text-white font-medium">{CHAT_PRODUCTION_HOST}</strong>
               </p>
             </ScrollReveal>
 
@@ -77,21 +73,6 @@ export default function Hero() {
                   <span>ดู MCP Tools</span>
                   <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-1 transition-transform" />
                 </a>
-
-                <ProductionChatLink
-                  variant="secondary"
-                  size="md"
-                  className="w-full sm:w-auto px-6 py-3.5 text-base"
-                >
-                  {`ใช้งานแชทจริง · ${CHAT_PRODUCTION_HOST}`}
-                </ProductionChatLink>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center justify-center lg:justify-start gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-                <span>ผู้ดูแลระบบ?</span>
-                <TestChatLink variant="ghost" size="sm" className="!px-2 !py-1">
-                  ทดสอบ Tools ในหน้าแชททดสอบ (Test console)
-                </TestChatLink>
               </div>
             </ScrollReveal>
           </div>
@@ -154,8 +135,8 @@ export default function Hero() {
                 <MessagesSquare className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-semibold text-slate-900 dark:text-white">Chat ผ่านระบบแชท IMC</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">ใช้งานจริงที่ {CHAT_PRODUCTION_HOST}</div>
+                <div className="text-xs font-semibold text-slate-900 dark:text-white">เรียกใช้ได้หลายช่องทาง</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">MCP, OpenAI-compatible API, แชทบอท และ LINE</div>
               </div>
             </div>
           </ScrollReveal>

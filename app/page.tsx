@@ -2,7 +2,6 @@ import Navbar from "@/components/common/Navbar";
 import Footer from "@/components/common/Footer";
 import Hero from "@/components/landing/Hero";
 import McpHubSection from "@/components/landing/McpHubSection";
-import ChatChannelsSection from "@/components/landing/ChatChannelsSection";
 import HarnessSimulator from "@/components/landing/HarnessSimulator";
 import PillarsSection from "@/components/landing/PillarsSection";
 import KnowledgeFlow from "@/components/landing/KnowledgeFlow";
@@ -17,7 +16,6 @@ export default function Home() {
       <main className="flex-1 overflow-x-clip">
         <Hero />
         <McpHubSection />
-        <ChatChannelsSection />
         <HarnessSimulator />
         <PillarsSection />
         <KnowledgeFlow />
