@@ -21,6 +21,8 @@ import {
   X
 } from "lucide-react";
 import ScrollReveal from "@/components/common/ScrollReveal";
+import { ProductionChatLink, TestChatLink } from "@/components/common/ChatLinks";
+import { CHAT_PRODUCTION_HOST } from "@/lib/site-links";
 
 interface AgentPreset {
   id: string;
@@ -681,14 +683,25 @@ export default function HarnessSimulator() {
           <div className="text-center max-w-3xl mx-auto mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-blue-50 dark:bg-blue-950/40 text-[#0055fa] dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40 mb-3">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Interactive AI Harness Preview</span>
+              <span>ตัวอย่างจำลอง · Preview</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               สัมผัสประสบการณ์ Harness ที่ไม่มีคำว่า “มั่ว”
             </h2>
             <p className="mt-4 text-base sm:text-lg text-slate-800 dark:text-slate-300">
-              ทดลองเลือกสลับ Domain Agent ด้านล่าง และคลิกที่แท็ก <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-[#0055fa] dark:text-blue-300 font-bold">[Doc X]</span> ในคำตอบ เพื่อดูข้อมูลอ้างอิงจริงที่ดึงจาก Qdrant Vector Engine
+              ทดลองเลือกสลับ Domain Agent ด้านล่าง และคลิกที่แท็ก <span className="font-mono text-xs px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-[#0055fa] dark:text-blue-300 font-bold">[Doc X]</span> ในคำตอบ เพื่อดูตัวอย่างข้อมูลอ้างอิง
             </p>
+            <p className="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+              หน้านี้เป็นภาพจำลองเพื่อสาธิตเท่านั้น ไม่ได้เรียก MCP Tools หรือโมเดลจริง
+            </p>
+            <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <ProductionChatLink variant="primary" size="md" className="w-full sm:w-auto">
+                {`ลองใช้ของจริงที่ ${CHAT_PRODUCTION_HOST}`}
+              </ProductionChatLink>
+              <TestChatLink variant="secondary" size="md" className="w-full sm:w-auto">
+                ทดสอบ Tools (Test console)
+              </TestChatLink>
+            </div>
           </div>
         </ScrollReveal>
 

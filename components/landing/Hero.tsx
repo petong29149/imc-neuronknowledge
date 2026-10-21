@@ -6,12 +6,12 @@ import {
   ArrowRight,
   ShieldCheck,
   FileSearch,
-  Layers,
-  Database,
-  CheckCircle2,
-  Zap,
+  Plug,
+  MessagesSquare,
 } from "lucide-react";
 import ScrollReveal from "@/components/common/ScrollReveal";
+import { ProductionChatLink, TestChatLink } from "@/components/common/ChatLinks";
+import { CHAT_PRODUCTION_HOST } from "@/lib/site-links";
 
 export default function Hero() {
   return (
@@ -39,7 +39,7 @@ export default function Hero() {
                   </span>
                   <span className="hidden sm:inline text-slate-300 dark:text-slate-600">|</span>
                   <span className="hidden sm:inline text-slate-600 dark:text-slate-400">
-                    Domain Knowledge Agent Platform by IMC Institute
+                    Knowledge &amp; MCP Hub by IMC Institute
                   </span>
                 </div>
               </div>
@@ -48,18 +48,20 @@ export default function Hero() {
             {/* Main Hero Headline */}
             <ScrollReveal variant="fade-up" delay={150}>
               <h1 className="text-4xl sm:text-5xl xl:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.12] text-balance">
-                Turn Knowledge into Action
+                MCP Server &amp; Knowledge Hub
                 <span className="block mt-3 text-xl sm:text-2xl xl:text-[2rem] font-semibold leading-snug bg-gradient-to-r from-[#0055fa] via-[#3b82f6] to-[#0055fa] bg-clip-text text-transparent">
-                  AI Harness ระดับองค์กร พร้อมคลังความรู้เฉพาะทาง
+                  ศูนย์กลางเครื่องมือและคลังความรู้สำหรับ AI Agent ขององค์กร
                 </span>
               </h1>
             </ScrollReveal>
 
             <ScrollReveal variant="fade-up" delay={250}>
               <p className="mt-6 text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-                หมดปัญหา AI ตอบเพี้ยน (Hallucination) ด้วยแพลตฟอร์ม AI Harness สไตล์ Open WebUI ที่สร้างขึ้นสำหรับองค์กรโดยเฉพาะ
-                ผสาน <strong className="text-slate-900 dark:text-white font-medium">Ready Knowledge</strong> คุณภาพสูงของ IMC Institute
-                เข้ากับ <strong className="text-slate-900 dark:text-white font-medium">ข้อมูลภายในองค์กร</strong> ผ่านระบบ Qdrant Vector Engine และ OpenRouter Gateway ที่ตรวจสอบย้อนกลับ (Source Citation) ได้ 100%
+                รวม <strong className="text-slate-900 dark:text-white font-medium">MCP Tools</strong> และ{" "}
+                <strong className="text-slate-900 dark:text-white font-medium">คลังความรู้ของ IMC Institute</strong>{" "}
+                ไว้ที่เดียว แล้วเปิดให้ระบบแชทและ MCP client อื่นเรียกใช้ พร้อมแหล่งอ้างอิงที่ตรวจสอบย้อนกลับได้
+                ส่วนหน้าแชทสำหรับผู้ใช้จริงอยู่ที่{" "}
+                <strong className="text-slate-900 dark:text-white font-medium">{CHAT_PRODUCTION_HOST}</strong>
               </p>
             </ScrollReveal>
 
@@ -67,21 +69,29 @@ export default function Hero() {
             <ScrollReveal variant="fade-up" delay={350}>
               <div className="mt-9 flex flex-col sm:flex-row sm:flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4">
                 <a
-                  href="#simulator"
+                  href="#mcp"
                   className="group relative w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 text-base font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] active:scale-[0.98] rounded-xl shadow-lg shadow-[#0055fa]/25 hover:shadow-xl hover:shadow-[#0055fa]/35 transition-all overflow-hidden"
                 >
                   <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out pointer-events-none" />
-                  <span>ทดลองใช้งานระบบจำลอง (Interactive Demo)</span>
+                  <Plug className="w-4.5 h-4.5" />
+                  <span>ดู MCP Tools</span>
                   <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-1 transition-transform" />
                 </a>
 
-                <a
-                  href="#architecture"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 text-base font-semibold text-slate-700 dark:text-slate-200 bg-white/80 dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-300/80 dark:border-white/15 rounded-xl transition-all hover:scale-[1.01]"
+                <ProductionChatLink
+                  variant="secondary"
+                  size="md"
+                  className="w-full sm:w-auto px-6 py-3.5 text-base"
                 >
-                  <Layers className="w-4.5 h-4.5 text-[#0055fa] dark:text-blue-400" />
-                  <span>ดูโครงสร้างสถาปัตยกรรม (Architecture)</span>
-                </a>
+                  {`ใช้งานแชทจริง · ${CHAT_PRODUCTION_HOST}`}
+                </ProductionChatLink>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-center lg:justify-start gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                <span>ผู้ดูแลระบบ?</span>
+                <TestChatLink variant="ghost" size="sm" className="!px-2 !py-1">
+                  ทดสอบ Tools ในหน้าแชททดสอบ (Test console)
+                </TestChatLink>
               </div>
             </ScrollReveal>
           </div>
@@ -117,11 +127,11 @@ export default function Hero() {
           <ScrollReveal variant="fade-up" delay={400}>
             <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/70 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/5 hover:-translate-y-1 hover:border-[#0055fa]/40 transition-all duration-200 group h-full">
               <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#0055fa] dark:text-blue-400 shrink-0 group-hover:scale-110 transition-transform">
-                <CheckCircle2 className="w-4 h-4" />
+                <Plug className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-semibold text-slate-900 dark:text-white">Ready Knowledge</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Medical, Trade, Legal, Finance</div>
+                <div className="text-xs font-semibold text-slate-900 dark:text-white">MCP Tools</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Streamable HTTP · SSE · Stdio</div>
               </div>
             </div>
           </ScrollReveal>
@@ -132,8 +142,8 @@ export default function Hero() {
                 <FileSearch className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-semibold text-slate-900 dark:text-white">Source Citation 100%</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">คลิกดูหน้า ย่อหน้า เอกสารอ้างอิงได้จริง</div>
+                <div className="text-xs font-semibold text-slate-900 dark:text-white">Knowledge Search</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">search_knowledge คืนเอกสาร หน้า และข้อความอ้างอิง</div>
               </div>
             </div>
           </ScrollReveal>
@@ -141,11 +151,11 @@ export default function Hero() {
           <ScrollReveal variant="fade-up" delay={560}>
             <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/70 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/5 hover:-translate-y-1 hover:border-[#0055fa]/40 transition-all duration-200 group h-full">
               <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#0055fa] dark:text-blue-400 shrink-0 group-hover:scale-110 transition-transform">
-                <Database className="w-4 h-4" />
+                <MessagesSquare className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-semibold text-slate-900 dark:text-white">Qdrant Vector Engine</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Isolated Tenant Collections</div>
+                <div className="text-xs font-semibold text-slate-900 dark:text-white">Chat ผ่านระบบแชท IMC</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">ใช้งานจริงที่ {CHAT_PRODUCTION_HOST}</div>
               </div>
             </div>
           </ScrollReveal>
@@ -156,8 +166,8 @@ export default function Hero() {
                 <ShieldCheck className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-semibold text-slate-900 dark:text-white">Enterprise Security</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">RBAC, Audit Log, Multi-tenant</div>
+                <div className="text-xs font-semibold text-slate-900 dark:text-white">Admin Console</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">MCP, Agent, Skills, ผู้ใช้ และสิทธิ์ตามกลุ่ม</div>
               </div>
             </div>
           </ScrollReveal>

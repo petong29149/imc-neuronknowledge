@@ -5,20 +5,21 @@ import Link from "next/link";
 import { useTheme } from "@/app/theme-provider";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
-import { 
-  Sun, 
-  Moon, 
-  Menu, 
-  X, 
-  Sparkles,
+import {
+  Sun,
+  Moon,
+  Menu,
+  X,
   ShieldCheck,
   LogOut,
   LogIn,
   ChevronRight,
-  Cpu,
+  Plug,
+  MessagesSquare,
   Layers,
   Database
 } from "lucide-react";
+import { ProductionChatLink, TestChatLink } from "@/components/common/ChatLinks";
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
@@ -56,9 +57,9 @@ export default function Navbar() {
     };
   }, [mobileMenuOpen]);
 
-  const navLinks = [    
-    { label: "AI Harness", href: "#simulator", badge: "Demo", icon: Cpu },
-    { label: "จุดเด่นระบบ", href: "#pillars", icon: Sparkles },
+  const navLinks = [
+    { label: "MCP Hub", href: "#mcp", badge: "Tools", icon: Plug },
+    { label: "ช่องทางแชท", href: "#chat-channels", icon: MessagesSquare },
     { label: "สถาปัตยกรรม", href: "#architecture", icon: Layers },
     { label: "คลังความรู้", href: "#library", icon: Database }
   ];
@@ -136,13 +137,23 @@ export default function Navbar() {
               )}
             </button>
 
+            {/* Real chat (moc.imcinstitute.com): available to everyone, guests included */}
+            {/* Logged-in phones also show the avatar, so the button moves into the menu there */}
+            <ProductionChatLink
+              variant="primary"
+              display={user ? "hidden sm:inline-flex" : "inline-flex"}
+              className="shrink-0"
+            >
+              ใช้งานจริง
+            </ProductionChatLink>
+
             {/* User Session State */}
             {user ? (
               <div className="flex items-center gap-1 sm:gap-1.5 xl:gap-2 shrink-0">
                 {/* Admin button - Desktop only (hidden on tablet & mobile, accessible in mobile menu) */}
                 {user.role === "admin" && (
                   <Link
-                    href="/admin/dashboard"
+                    href="/admin/mcp"
                     className="hidden lg:inline-flex items-center gap-1.5 px-2 xl:px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-[#0055fa] dark:hover:text-blue-400 bg-slate-100/80 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 rounded-xl border border-slate-200/70 dark:border-white/10 transition-all shrink-0"
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-[#0055fa]" />
@@ -150,14 +161,10 @@ export default function Navbar() {
                   </Link>
                 )}
 
-                {/* Chat AI CTA button - Desktop & Tablet */}
-                <Link
-                  href="/chat"
-                  className="hidden sm:inline-flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-md shadow-[#0055fa]/20 transition-all active:scale-95 shrink-0"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Chat AI</span>
-                </Link>
+                {/* Test console (in-app chat for trying MCP tools) - Tablet & Desktop */}
+                <TestChatLink variant="secondary" display="hidden md:inline-flex" className="shrink-0">
+                  ทดสอบ
+                </TestChatLink>
 
                 {/* User profile pill - Desktop & Tablet */}
                 <div 
@@ -203,7 +210,7 @@ export default function Navbar() {
 
                 <Link
                   href="/register"
-                  className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-semibold text-[#0055fa] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 rounded-xl transition-all"
+                  className="hidden lg:inline-flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-semibold text-[#0055fa] dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 rounded-xl transition-all"
                 >
                   <span>สมัครสมาชิก</span>
                 </Link>
@@ -317,18 +324,25 @@ export default function Navbar() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-2 pt-1">
-                    <Link
-                      href="/chat"
+                    <ProductionChatLink
+                      variant="primary"
+                      className="w-full !py-2.5"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] shadow-md shadow-[#0055fa]/20 transition-all active:scale-[0.98]"
                     >
-                      <Sparkles className="w-4 h-4" />
-                      <span>เข้าสู่ Chat AI</span>
-                    </Link>
+                      ใช้งานแชทจริง
+                    </ProductionChatLink>
+
+                    <TestChatLink
+                      variant="secondary"
+                      className="w-full !py-2.5"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      ทดสอบแชท (Test console)
+                    </TestChatLink>
 
                     {user.role === "admin" && (
                       <Link
-                        href="/admin/dashboard"
+                        href="/admin/mcp"
                         onClick={() => setMobileMenuOpen(false)}
                         className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 transition-all"
                       >
@@ -351,6 +365,13 @@ export default function Navbar() {
                 </div>
               ) : (
                 <div className="pt-2.5 border-t border-slate-200/70 dark:border-white/10 grid grid-cols-2 gap-2">
+                  <ProductionChatLink
+                    variant="primary"
+                    className="col-span-2 !py-2.5"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    ใช้งานแชทจริง
+                  </ProductionChatLink>
                   <Link
                     href="/login"
                     onClick={() => setMobileMenuOpen(false)}
