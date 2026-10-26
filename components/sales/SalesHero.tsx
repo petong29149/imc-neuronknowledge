@@ -6,11 +6,11 @@ import SalesCtaButtons from "@/components/sales/SalesCtaButtons";
 const STATS = [
   { value: "23", label: "Bots ที่ IMC ใช้งานจริงทุกฝ่าย" },
   { value: "2–3 ชม.", label: "Workshop ปรับ Mindset" },
-  { value: "ไม่กี่วัน", label: "Quick-win Executive Dashboard" },
-  { value: "1–2 เดือน", label: "Full Agents Transformation" },
+  { value: "ไม่กี่วัน", label: "Quick-win Dashboard" },
+  { value: "1–2 เดือน", label: "AI Transformation" },
 ];
 
-const POINTS = ["อบรม + ลงมือทำจริงพร้อมกัน", "AI ร่าง คนอนุมัติ", "ทีมสร้าง Bots ต่อเองได้"];
+const POINTS = ["5 แพ็กเกจ ซื้อแยกหรือรวมชุด", "AI ร่าง คนอนุมัติ", "ทีมสร้าง Bots ต่อเองได้"];
 
 export default function SalesHero() {
   return (
@@ -44,9 +44,9 @@ export default function SalesHero() {
 
             <ScrollReveal variant="fade-up" delay={200}>
               <p className="mt-6 text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                IMC Institute ผสาน <strong className="text-slate-900 dark:text-white">การอบรมและการลงมือทำจริง</strong> เข้ากับแพลตฟอร์มความรู้
-                (NeuronKnowledge) และ AI Gateway (NeuronHub) ที่องค์กรควบคุมได้เอง — จาก Workshop ไปสู่ Agents
-                ที่ใช้งานจริงภายใน 1–2 เดือน
+                IMC Institute ผสาน <strong className="text-slate-900 dark:text-white">การอบรมและการลงมือทำจริง</strong> เข้ากับ Bot ที่ทำงานแทนคน
+                หน้าแชท IMC Chat และ Knowledge &amp; MCP Hub ที่องค์กรควบคุมได้เอง — จาก Dashboard ในไม่กี่วัน
+                ไปสู่ Agents ที่ใช้งานจริงภายใน 1–2 เดือน
               </p>
               <ul className="mt-6 flex flex-wrap justify-center lg:justify-start gap-x-6 gap-y-2">
                 {POINTS.map((p) => (

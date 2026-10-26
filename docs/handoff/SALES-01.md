@@ -11,7 +11,7 @@
 
 ## 2) Build
 - ผู้ทำ: Claude (Builder) • ควบคุมโดยเจ้าของโปรเจกต์
-- ไฟล์ที่เปลี่ยน: `app/page.tsx` (ใหม่), `app/hub/page.tsx` (ย้ายจาก `app/page.tsx` เนื้อหาเดิม), `components/sales/*` (SalesHeader, SalesHero, SalesPillars, SalesSystems, SalesTransformation, SalesContact, SalesFooter, SalesCtaButtons, SectionHeading), `lib/sales/links.ts`, `example.env` (คอมเมนต์), `docs/sales/*` (README + สไลด์), `docs/specs/SALES-01-sales-landing.md`, `docs/handoff/SALES-01.md`
+- ไฟล์ที่เปลี่ยน: `app/page.tsx` (ใหม่), `app/hub/page.tsx` (ย้ายจาก `app/page.tsx` เนื้อหาเดิม), `components/sales/*` (SalesHeader, SalesHero, SalesPackages, SalesTransformation, SalesBots, SalesSystems, SalesContact, SalesFooter, SalesCtaButtons, SectionHeading), `lib/sales/links.ts`, `example.env` (คอมเมนต์), `docs/sales/*` (README + สไลด์), `docs/specs/SALES-01-sales-landing.md`, `docs/handoff/SALES-01.md`
 - คำสั่งตรวจที่รันและผล: `npx tsc --noEmit` → ผ่าน • `npx eslint app/page.tsx app/hub/page.tsx components/sales lib/sales` → ผ่าน • `npm run build` → ผ่าน (`/` และ `/hub` เป็น static) • ตรวจในเบราว์เซอร์: `/` และ `/hub` ทั้งจอ 1440px และมือถือ 375px, light/dark, ปุ่มทั้งสองชี้ปลายทางถูกต้อง
 - ขั้นตอนทดสอบด้วยมือ (ทำซ้ำได้):
   1. `npm run dev` เปิด `/` — เห็นหน้าขาย ปุ่ม **เข้าสู่ IMC Chat** ชี้ไป `https://moc.imcinstitute.com` เปิดแท็บใหม่
@@ -19,7 +19,8 @@
   3. กดโลโก้บน `/hub` — กลับ `/`
   4. สลับ light/dark และย่อหน้าต่างเป็น 375px — ไม่มี scroll แนวนอน เมนูมือถือเปิดปิดได้
   5. ตั้ง `NEXT_PUBLIC_CHAT_URL=https://example.com` แล้ว build ใหม่ — ปุ่ม IMC Chat ชี้ไปค่าใหม่
-- สิ่งที่เบี่ยงจาก Spec + เหตุผล: ไม่มี
+- รอบแก้ไข 2026-10-26: เจ้าของโปรเจกต์ยืนยันชุด 5 แพ็กเกจ — เพิ่ม `SalesPackages` (แทน `SalesPillars`) และ `SalesBots`, ย้ายหลักฐาน 23 bots ไปส่วน Bot, ปรับเมนู/ชื่อ section; สไลด์ปรับเป็น 30 หน้า
+- สิ่งที่เบี่ยงจาก Spec + เหตุผล: ไม่มี (Spec เพิ่มข้อ 1.1 ชุดแพ็กเกจ)
 
 ## 3) Review (AI)
 - (ยังไม่ได้ทำ — ให้ Reviewer ตรวจ `git diff staging...HEAD` เทียบ Spec และ `.github/ai-review/checklist.md`)

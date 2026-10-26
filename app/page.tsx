@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import SalesHeader from "@/components/sales/SalesHeader";
 import SalesHero from "@/components/sales/SalesHero";
-import SalesPillars from "@/components/sales/SalesPillars";
+import SalesPackages from "@/components/sales/SalesPackages";
 import SalesSystems from "@/components/sales/SalesSystems";
 import SalesTransformation from "@/components/sales/SalesTransformation";
+import SalesBots from "@/components/sales/SalesBots";
 import SalesContact from "@/components/sales/SalesContact";
 import SalesFooter from "@/components/sales/SalesFooter";
 
 export const metadata: Metadata = {
   title: "IMC AI Transformation | บริการและแพลตฟอร์ม AI สำหรับองค์กร",
   description:
-    "IMC Institute ช่วยองค์กรทำ AI Transformation แบบอบรมและลงมือทำจริง พร้อมแพลตฟอร์ม NeuronKnowledge และ NeuronHub — เข้าใช้ IMC Chat หรือ NeuronHub ได้จากหน้านี้",
+    "5 แพ็กเกจจาก IMC Institute: Quick-win Dashboard, AI Transformation, Bot ทำงานแทนคน, IMC Chat และ Knowledge & MCP Hub — เข้าใช้ IMC Chat หรือ NeuronHub ได้จากหน้านี้",
 };
 
 // Sales front page. The original NeuronHub home now lives at /hub (app/hub/page.tsx).
@@ -20,9 +21,10 @@ export default function SalesHome() {
       <SalesHeader />
       <main className="flex-1 overflow-x-clip">
         <SalesHero />
-        <SalesPillars />
-        <SalesSystems />
+        <SalesPackages />
         <SalesTransformation />
+        <SalesBots />
+        <SalesSystems />
         <SalesContact />
       </main>
       <SalesFooter />

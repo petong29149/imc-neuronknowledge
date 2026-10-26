@@ -6,8 +6,14 @@
 ## 1. เป้าหมาย
 ทำหน้าแรกใหม่ซ้อนหน้าเดิม ใช้ขายให้ลูกค้าองค์กร อธิบายแต่ละระบบ และมีส่วน AI Transformation ตามเอกสารแนวคิดบริการ พร้อมปุ่มสองปุ่ม
 
+### 1.1 ชุดแพ็กเกจ (เจ้าของโปรเจกต์ยืนยันแล้ว 2026-10-26)
+- กลุ่มบริการ (ทีม IMC ลงมือทำ): แพ็กเกจ 1 Quick-win Dashboard (ไม่กี่วัน), แพ็กเกจ 2 AI Transformation (1–2 เดือน), แพ็กเกจ 3 Bot ทำงานแทนคน (Bot Starter / Department Bot Pack / Bot Care)
+- กลุ่มแพลตฟอร์ม (ใช้งานต่อเนื่อง): แพ็กเกจ 4 IMC Chat (ใช้ร่วม / แยกของตัวเอง), แพ็กเกจ 5 Knowledge & MCP Hub (Ready / Custom / Hybrid, Cloud / On-premise)
+- ทางเข้า: Free Assessment, Workshop • ชุดรวม: Starter (Quick-win + IMC Chat), Transformation Suite (แพ็กเกจ 2+3+4+5)
+- ราคาแพ็กเกจ 3, 4, 5 ยังไม่กำหนด หน้าเว็บสาธารณะไม่แสดงราคา
+
 ## 2. Acceptance Criteria
-1. `/` แสดงหน้าขาย: Hero, 3 เสาหลัก, การ์ดอธิบาย IMC Chat และ NeuronHub, ส่วน AI Transformation, ติดต่อ
+1. `/` แสดงหน้าขาย: Hero, 5 แพ็กเกจ (ดูข้อ 1.1), ส่วน Quick-win Dashboard + AI Transformation, ส่วน Bot ทำงานแทนคน, ส่วน IMC Chat + Knowledge & MCP Hub (การ์ดอธิบายพร้อมปุ่ม), ติดต่อ
 2. ปุ่ม **IMC Chat** เปิด `NEXT_PUBLIC_CHAT_URL` (ค่าเริ่มต้น `https://moc.imcinstitute.com`) ในแท็บใหม่ด้วย `rel="noopener noreferrer"`
 3. ปุ่ม **NeuronHub** ไป `/hub` ซึ่งต้องเป็นหน้าแรกเดิมของ NeuronHub ที่เนื้อหาไม่เปลี่ยน (anchor `#mcp`, `#architecture`, `#library` ยังทำงาน)
 4. โลโก้ใน Navbar ของ `/hub` กลับมาที่ `/`

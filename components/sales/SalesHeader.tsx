@@ -7,9 +7,10 @@ import { useTheme } from "@/app/theme-provider";
 import SalesCtaButtons from "@/components/sales/SalesCtaButtons";
 
 const NAV = [
-  { label: "บริการ", href: "#services" },
-  { label: "ระบบของเรา", href: "#systems" },
+  { label: "แพ็กเกจ", href: "#services" },
   { label: "AI Transformation", href: "#transformation" },
+  { label: "Bot", href: "#bots" },
+  { label: "IMC Chat & Hub", href: "#systems" },
   { label: "ติดต่อ", href: "#contact" },
 ];
 

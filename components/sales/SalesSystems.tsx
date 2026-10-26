@@ -43,9 +43,9 @@ export default function SalesSystems() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <ScrollReveal variant="fade-up">
           <SectionHeading
-            eyebrow="ระบบของเรา"
+            eyebrow="แพ็กเกจ 4 และ 5"
             title="สองระบบที่ทำงานร่วมกัน"
-            subtitle="ฝั่งผู้ใช้งานคือ IMC Chat ฝั่งศูนย์กลางความรู้และเครื่องมือคือ NeuronHub — เข้าใช้งานได้จากปุ่มในแต่ละการ์ด"
+            subtitle="IMC Chat คือหน้าแชทของผู้ใช้งาน ส่วน Knowledge & MCP Hub (NeuronHub) คือศูนย์กลางความรู้และเครื่องมือ — เข้าใช้งานได้จากปุ่มในแต่ละการ์ด"
           />
         </ScrollReveal>
 
@@ -59,7 +59,7 @@ export default function SalesSystems() {
                     <MessageSquare className="w-7 h-7" aria-hidden />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">สำหรับผู้ใช้งานปลายทาง</div>
+                    <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">แพ็กเกจ 4 · สำหรับผู้ใช้งานปลายทาง</div>
                     <h3 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">IMC Chat</h3>
                   </div>
                 </div>
@@ -72,6 +72,12 @@ export default function SalesSystems() {
                 หน้าแชทผู้ช่วย AI ที่ใช้งานจริง ถามเป็นภาษาไทยได้ Agent เรียกใช้เครื่องมือและความรู้เอง แล้วตอบพร้อมแหล่งอ้างอิงที่ตรวจย้อนกลับได้
                 เหมาะกับพนักงาน ลูกค้า และผู้เข้าร่วมงานที่ต้องการคำตอบเร็วและเชื่อถือได้
               </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {["ใช้ร่วม (Shared)", "แยกของตัวเอง (Dedicated): โดเมน SSO Widget"].map((e) => (
+                  <span key={e} className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/50 text-[#0055fa] dark:text-blue-300">{e}</span>
+                ))}
+              </div>
 
               <ul className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm text-slate-600 dark:text-slate-300">
                 {CHAT_FEATURES.map((f) => (
@@ -105,8 +111,8 @@ export default function SalesSystems() {
                     <Network className="w-7 h-7" aria-hidden />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">ศูนย์กลางความรู้และเครื่องมือ</div>
-                    <h3 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">NeuronHub</h3>
+                    <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">แพ็กเกจ 5 · ศูนย์กลางความรู้และเครื่องมือ</div>
+                    <h3 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Knowledge &amp; MCP Hub</h3>
                   </div>
                 </div>
                 <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200/70 dark:border-emerald-500/20">
@@ -118,6 +124,12 @@ export default function SalesSystems() {
                 Knowledge &amp; MCP Hub ของ IMC รวม MCP Tools คลังความรู้ และ Agent ไว้ที่เดียว ให้ระบบแชทและ MCP client อื่นเรียกใช้
                 พร้อมคอนโซลแอดมินสำหรับกำกับดูแลผู้ใช้ โมเดล และการใช้งาน
               </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {["Ready", "Custom", "Hybrid", "Cloud / On-premise"].map((e) => (
+                  <span key={e} className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-[#fec921]/10 text-amber-900 dark:text-[#fec921] border border-amber-200/70 dark:border-[#fec921]/20">{e}</span>
+                ))}
+              </div>
 
               <div className="mt-6">
                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">ใช้งานได้แล้ว</div>

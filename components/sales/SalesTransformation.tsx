@@ -1,4 +1,3 @@
-import React from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -25,7 +24,7 @@ const PRINCIPLES = [
 ];
 
 const PACKAGE_A = {
-  tag: "Package A",
+  tag: "แพ็กเกจ 1",
   name: "Quick-win Executive Dashboard",
   duration: "ภายในไม่กี่วัน",
   for: "ผู้บริหารที่มีข้อมูลใน ERP หรือระบบอื่นจำนวนมาก แต่ดูยากและใช้ตัดสินใจได้ช้า",
@@ -34,12 +33,12 @@ const PACKAGE_A = {
     { when: "วันที่ 2–3", what: "ทำงานร่วมกับทีมลูกค้า ปรับการแสดงผลข้อมูลด้วย Claude / ChatGPT" },
     { when: "วันที่ 4–5", what: "ทดลองใช้กับผู้บริหาร ปรับแก้ และส่งมอบ" },
   ],
-  deliver: ["Dashboard หรือรายงานรูปแบบใหม่สำหรับผู้บริหาร", "วิธีการและ Prompt ที่ทีมนำไปใช้ซ้ำได้", "ข้อเสนอต่อยอดสู่ Agents Transformation"],
+  deliver: ["Dashboard หรือรายงานรูปแบบใหม่สำหรับผู้บริหาร", "วิธีการและ Prompt ที่ทีมนำไปใช้ซ้ำได้", "ข้อเสนอต่อยอดสู่ AI Transformation"],
 };
 
 const PACKAGE_B = {
-  tag: "Package B",
-  name: "Full Agents Transformation",
+  tag: "แพ็กเกจ 2",
+  name: "AI Transformation",
   duration: "ประมาณ 1–2 เดือน",
   for: "องค์กรที่ต้องการเปลี่ยนวิธีทำงานจริง สร้าง Bots ในหลายงาน และให้ทีมดูแลต่อเองได้",
   steps: [
@@ -61,19 +60,9 @@ const PACKAGE_B = {
 const JOURNEY = [
   { name: "Free Assessment", note: "ฟรี", text: "คุยกับผู้บริหาร/ทีม ประเมินงานที่เหมาะกับ AI และเสนองานนำร่อง" },
   { name: "Workshop หรือ Quick-win", note: "ไม่กี่วัน", text: "อบรม 2–3 ชม. พร้อมลงมือกับงานจริง หรือทำ Executive Dashboard" },
-  { name: "Full Agents Transformation", note: "1–2 เดือน", text: "อบรม + Implement พร้อมกัน สร้าง Bots ในงานจริง" },
-  { name: "ดูแลต่อเนื่อง", note: "ทางเลือก", text: "Consult รายเดือน ปรับปรุง Bots และขยายผลไปฝ่ายอื่น" },
+  { name: "AI Transformation", note: "1–2 เดือน", text: "อบรม + Implement พร้อมกัน สร้าง Bots ในงานจริง" },
+  { name: "ขยายและดูแล", note: "ต่อเนื่อง", text: "ต่อยอดด้วย Bots, IMC Chat, Knowledge & MCP Hub และ Consult รายเดือน" },
 ];
-
-const DEPARTMENTS = [
-  { name: "ผู้บริหาร", bots: ["COO"] },
-  { name: "ลูกค้า", bots: ["Zoom", "Gmail", "LINE training", "Calendar", "Salesforce", "LINE OA"] },
-  { name: "การตลาด", bots: ["Marketing", "VDO", "Webinar", "EDM", "Graphic", "Social Media", "Canva", "Content"] },
-  { name: "หลักสูตร", bots: ["Public Class", "Google Drive", "Web", "Course Outline", "In-House"] },
-  { name: "การเงิน", bots: ["Accounting", "FlowAccount", "Petty Cash"] },
-];
-
-const FLOW = ["อีเมล New Register เข้ามา", "บันทึกใน Salesforce", "ออกใบเสนอราคา (FlowAccount)", "ร่างอีเมลตอบกลับ", "คนตรวจและอนุมัติก่อนส่ง"];
 
 const GOVERNANCE = [
   "คนอนุมัติก่อนส่งงานออกทุกครั้ง — Bots ทำเพียงร่างหรือเตรียมงาน",
@@ -141,8 +130,8 @@ export default function SalesTransformation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <ScrollReveal variant="fade-up">
           <SectionHeading
-            eyebrow="AI Transformation"
-            title="AI Transformation ผ่านการสร้าง Agents"
+            eyebrow="แพ็กเกจ 1–2"
+            title="Quick-win Dashboard และ AI Transformation"
             subtitle="IMC Institute ทำกับองค์กรของตัวเองมาแล้ว จึงพาองค์กรคุณเปลี่ยนทั้ง Mindset วัฒนธรรม และ Business Process — อบรมและ Implement ไปพร้อมกัน ภายในประมาณ 1–2 เดือน"
           />
         </ScrollReveal>
@@ -164,7 +153,7 @@ export default function SalesTransformation() {
 
         {/* packages */}
         <ScrollReveal variant="fade-up">
-          <h3 className="mt-16 text-center text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">แพ็กเกจบริการ</h3>
+          <h3 className="mt-16 text-center text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">รายละเอียดแพ็กเกจ 1 และ 2</h3>
           <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">ไทม์ไลน์เป็นตัวอย่าง ปรับตามขนาดองค์กรและขอบเขตงาน</p>
         </ScrollReveal>
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -198,70 +187,8 @@ export default function SalesTransformation() {
           ))}
         </div>
 
-        {/* proof */}
-        <ScrollReveal variant="fade-up">
-          <h3 className="mt-16 text-center text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">IMC ทำเองมาแล้ว</h3>
-          <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">Agents (Grok Bot) ประมาณ 23 bots แบ่งตามฝ่าย เชื่อมกับระบบที่ใช้งานจริง</p>
-        </ScrollReveal>
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <ScrollReveal variant="fade-right" className="lg:col-span-4 h-full">
-            <div className="h-full rounded-3xl p-8 bg-[#003d60] text-white flex flex-col justify-between">
-              <div>
-                <div className="text-7xl font-extrabold tracking-tight text-[#fec921]">23</div>
-                <div className="text-2xl font-bold">Bots</div>
-                <p className="mt-3 text-sm text-blue-100/90 leading-relaxed">ใช้งานจริงทุกฝ่ายใน IMC Institute ตั้งแต่ผู้บริหาร ลูกค้า การตลาด หลักสูตร จนถึงการเงิน</p>
-              </div>
-              <div className="mt-6 pt-5 border-t border-white/20">
-                <div className="text-sm font-bold text-[#fec921]">ระบบที่ Bots ทำงานร่วมด้วย</div>
-                <p className="mt-1.5 text-sm text-blue-100/90">Gmail · Salesforce · FlowAccount · Google Drive/Sheets · Canva · LINE OA</p>
-              </div>
-            </div>
-          </ScrollReveal>
-          <ScrollReveal variant="fade-left" className="lg:col-span-8 h-full">
-            <div className="h-full rounded-3xl p-6 sm:p-7 bg-white dark:bg-[#0d1424] border border-slate-200/90 dark:border-white/10">
-              <div className="space-y-3">
-                {DEPARTMENTS.map((d) => (
-                  <div key={d.name} className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
-                    <div className="sm:w-28 shrink-0 text-sm font-bold text-[#003d60] dark:text-[#fec921]">
-                      {d.name} <span className="font-medium text-slate-400">({d.bots.length})</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {d.bots.map((b) => (
-                        <span key={b} className="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-white/10">
-                          {b}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 pt-5 border-t border-slate-200/80 dark:border-white/10">
-                <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">ตัวอย่าง Flow จริง: AI ร่าง คนอนุมัติ</div>
-                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                  {FLOW.map((f, i) => (
-                    <React.Fragment key={f}>
-                      <span
-                        className={`px-3 py-1.5 rounded-xl ${
-                          i === 0
-                            ? "bg-[#003d60] text-white"
-                            : i === FLOW.length - 1
-                              ? "bg-amber-50 dark:bg-[#fec921]/10 text-amber-900 dark:text-[#fec921] border border-[#fec921]"
-                              : "bg-[#fec921] text-slate-900"
-                        }`}
-                      >
-                        {f}
-                      </span>
-                      {i < FLOW.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-slate-400" aria-hidden />}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
-        </div>
-
         <ScrollReveal variant="fade-up" delay={100}>
-          <div className="mt-6 rounded-3xl p-6 sm:p-7 bg-white dark:bg-[#0d1424] border border-slate-200/90 dark:border-white/10 flex flex-col md:flex-row md:items-center gap-5">
+          <div className="mt-14 rounded-3xl p-6 sm:p-7 bg-white dark:bg-[#0d1424] border border-slate-200/90 dark:border-white/10 flex flex-col md:flex-row md:items-center gap-5">
             <div className="w-12 h-12 rounded-2xl bg-[#fec921] text-slate-900 flex items-center justify-center shrink-0">
               <Rocket className="w-6 h-6" aria-hidden />
             </div>
