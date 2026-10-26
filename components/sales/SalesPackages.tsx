@@ -1,18 +1,9 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Bot,
-  ChartColumn,
-  Check,
-  GraduationCap,
-  MessageSquare,
-  Network,
-} from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChartColumn, Check, FileText, GraduationCap, MessageSquare, Network } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import ScrollReveal from "@/components/common/ScrollReveal";
 import SectionHeading from "@/components/sales/SectionHeading";
-import { CHAT_URL, HUB_PATH } from "@/lib/sales/links";
+import { NEURONHUB_PATH, NEURONKNOWLEDGE_PATH, SERVICE_DOC_URL } from "@/lib/sales/links";
 
 type Pkg = {
   no: number;
@@ -21,7 +12,7 @@ type Pkg = {
   tagline: string;
   points: string[];
   tag: string;
-  cta: { label: string; href: string; kind: "anchor" | "internal" | "external" };
+  cta: { label: string; href: string; kind: "anchor" | "internal" };
 };
 
 const SERVICES: Pkg[] = [
@@ -29,89 +20,79 @@ const SERVICES: Pkg[] = [
     no: 1,
     icon: ChartColumn,
     name: "Quick-win Dashboard",
-    tagline: "ปรับข้อมูล ERP ให้ผู้บริหารตัดสินใจได้เร็ว",
+    tagline: "ปรับข้อมูล ERP ให้ผู้บริหารตัดสินใจได้ง่ายขึ้น",
     points: [
       "ปรับการแสดงผลข้อมูลให้เข้าใจง่ายและใช้ตัดสินใจได้",
       "ทำร่วมกับทีมลูกค้าด้วย Claude / ChatGPT",
       "ทีมนำวิธีและ Prompt ไปใช้ซ้ำได้",
     ],
-    tag: "ภายในไม่กี่วัน",
+    tag: "ระยะสั้น",
     cta: { label: "ดูรายละเอียด", href: "#transformation", kind: "anchor" },
   },
   {
     no: 2,
     icon: GraduationCap,
     name: "AI Transformation",
-    tagline: "อบรม + Implement พร้อมกัน เปลี่ยนคนและกระบวนการ",
+    tagline: "อบรม + ลงมือสร้าง Bots ที่ทำงานแทนคนในงานจริง",
     points: [
       "Workshop 2–3 ชม. และ Consult ทุก 2–3 วัน",
-      "สร้าง Bots ในงานจริง ปรับ Business Process",
-      "ทีมลูกค้าสร้าง Bots ต่อเองได้",
+      "สร้าง Bots ในงานจริง ปรับ Business Process โดยคนอนุมัติก่อนส่งออก",
+      "ทีมลูกค้าสร้าง Bots ต่อเองได้ · ดูแลรายเดือนเป็นทางเลือก",
     ],
     tag: "ประมาณ 1–2 เดือน",
     cta: { label: "ดูรายละเอียด", href: "#transformation", kind: "anchor" },
-  },
-  {
-    no: 3,
-    icon: Bot,
-    name: "Bot ทำงานแทนคน",
-    tagline: "IMC สร้าง bot ใน workflow จริง คนอนุมัติก่อนส่ง",
-    points: [
-      "ส่งมอบ bot ที่ใช้งานได้เลย เชื่อมระบบที่ใช้อยู่",
-      "คนอนุมัติก่อนส่งงานออกทุกครั้ง",
-      "เริ่มที่ 1 workflow แล้วขยายเป็นชุดต่อฝ่าย",
-    ],
-    tag: "Starter · Dept Pack · Care",
-    cta: { label: "ดูรายละเอียด", href: "#bots", kind: "anchor" },
   },
 ];
 
 const PLATFORMS: Pkg[] = [
   {
-    no: 4,
+    no: 3,
     icon: MessageSquare,
-    name: "IMC Chat",
-    tagline: "หน้าแชทผู้ช่วย AI ขององค์กร ตอบพร้อมอ้างอิงแหล่งที่มา",
+    name: "NeuronHub",
+    tagline: "หน้าแชทผู้ช่วย AI ขององค์กร คุยภาษาไทยได้",
     points: [
-      "Agent เรียก Tools / MCP เอง กดดูแหล่งอ้างอิงได้",
-      "Skills, Prompt Market และ Embed Widget",
+      "ตอบพร้อมอ้างอิงแหล่งที่มา ตรวจย้อนกลับได้",
+      "Agent เรียก Tools / MCP เอง · Skills · Embed Widget",
       "สิทธิ์ตามกลุ่ม โควตา และ Audit Log",
     ],
     tag: "ใช้ร่วม · แยกของตัวเอง",
-    cta: { label: "เข้าสู่ IMC Chat", href: CHAT_URL, kind: "external" },
+    cta: { label: "ดูหน้า NeuronHub", href: NEURONHUB_PATH, kind: "internal" },
   },
   {
-    no: 5,
+    no: 4,
     icon: Network,
-    name: "Knowledge & MCP Hub",
-    tagline: "ตัวรวมความรู้และ MCP Tools ให้ Chat และ Bots เรียกใช้",
+    name: "NeuronKnowledge",
+    tagline: "ศูนย์รวม MCP Server และความรู้ ให้ NeuronHub และ Bots เรียกใช้",
     points: [
       "คลังความรู้ Ready / Custom / Hybrid พร้อมอ้างอิง",
       "ต่อฐานข้อมูล ไฟล์ และ API ผ่าน MCP",
       "ติดตั้ง Cloud หรือ On-premise ควบคุมข้อมูลเอง",
     ],
     tag: "Ready · Custom · Hybrid",
-    cta: { label: "เข้าสู่ NeuronHub", href: HUB_PATH, kind: "internal" },
+    cta: { label: "ดูหน้า NeuronKnowledge", href: NEURONKNOWLEDGE_PATH, kind: "internal" },
   },
 ];
 
 const BUNDLES = [
   {
-    title: "ทางเข้า",
-    items: "Free Assessment (ฟรี) · Workshop 2–3 ชม.",
+    label: "ทางเข้า",
+    title: "Free Assessment · Workshop",
+    items: "ฟรี · 2–3 ชม.",
     text: "ประเมินงานที่เหมาะกับ AI และลองลงมือกับงานจริงก่อนตัดสินใจ",
     dark: false,
   },
   {
+    label: "ชุดรวม",
     title: "Starter",
-    items: "Quick-win Dashboard + IMC Chat",
-    text: "เริ่มเล็ก เห็นผลเร็ว ผู้บริหารและพนักงานใช้ได้ทันที",
+    items: "Quick-win Dashboard + NeuronHub",
+    text: "เริ่มเล็ก ผู้บริหารเห็นข้อมูลชัดขึ้น และพนักงานได้ลองใช้ AI",
     dark: false,
   },
   {
+    label: "ชุดรวม",
     title: "Transformation Suite",
-    items: "AI Transformation + Bots + IMC Chat + Knowledge & MCP Hub",
-    text: "เปลี่ยนคน ทำ bot ให้ ใช้แชทกลาง และรวมความรู้ไว้ที่เดียว",
+    items: "AI Transformation + NeuronHub + NeuronKnowledge",
+    text: "เปลี่ยนคน สร้าง bots ใช้แชทกลาง และรวมความรู้ไว้ที่เดียว",
     dark: true,
   },
 ];
@@ -119,13 +100,6 @@ const BUNDLES = [
 function CardLink({ cta }: { cta: Pkg["cta"] }) {
   const cls =
     "inline-flex items-center gap-1.5 text-sm font-semibold text-[#0055fa] dark:text-[#60a5fa] hover:gap-2.5 transition-all";
-  if (cta.kind === "external") {
-    return (
-      <a href={cta.href} target="_blank" rel="noopener noreferrer" className={cls}>
-        {cta.label} <ArrowUpRight className="w-4 h-4" aria-hidden />
-      </a>
-    );
-  }
   if (cta.kind === "internal") {
     return (
       <Link href={cta.href} className={cls}>
@@ -180,14 +154,14 @@ export default function SalesPackages() {
         <ScrollReveal variant="fade-up">
           <SectionHeading
             eyebrow="แพ็กเกจของ IMC"
-            title="5 แพ็กเกจ ตั้งแต่ Dashboard ถึงแพลตฟอร์ม"
-            subtitle="เลือกซื้อแยกตามโจทย์ หรือรวมเป็นชุดเดียว — เริ่มจาก Free Assessment ได้โดยไม่มีค่าใช้จ่าย"
+            title="4 แพ็กเกจ ตั้งแต่ Dashboard ถึงแพลตฟอร์ม"
+            subtitle="เลือกแยกตามโจทย์ หรือรวมเป็นชุดเดียว — เริ่มจาก Free Assessment ได้โดยไม่มีค่าใช้จ่าย"
           />
         </ScrollReveal>
 
         <div className="mt-12">
           <div className="inline-flex px-4 py-1.5 rounded-full text-sm font-bold bg-[#003d60] text-white">บริการ · ทีม IMC ลงมือทำ</div>
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-6">
             {SERVICES.map((p, i) => (
               <PackageCard key={p.no} p={p} index={i} />
             ))}
@@ -214,7 +188,7 @@ export default function SalesPackages() {
                 }`}
               >
                 <div className={`text-xs font-bold uppercase tracking-wider ${b.dark ? "text-[#fec921]" : "text-[#0055fa] dark:text-[#60a5fa]"}`}>
-                  {i === 0 ? "ทางเข้า" : "ชุดรวม"}
+                  {b.label}
                 </div>
                 <div className={`mt-1 text-lg font-extrabold tracking-tight ${b.dark ? "text-[#fec921]" : "text-slate-900 dark:text-white"}`}>
                   {b.title}
@@ -225,6 +199,28 @@ export default function SalesPackages() {
             </ScrollReveal>
           ))}
         </div>
+
+        <ScrollReveal variant="fade-up">
+          <div className="mt-8 rounded-2xl p-5 sm:p-6 bg-white dark:bg-[#0d1424] border border-slate-200/90 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-xl bg-[#0055fa] text-white flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5" aria-hidden />
+              </div>
+              <div>
+                <div className="font-bold text-slate-900 dark:text-white">เอกสารรายละเอียดบริการ</div>
+                <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">แนวคิด แพ็กเกจ ขั้นตอน และบทบาทของทีมลูกค้ากับ IMC</p>
+              </div>
+            </div>
+            <a
+              href={SERVICE_DOC_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white bg-[#0055fa] hover:bg-[#0047d1] transition-colors"
+            >
+              เปิดเอกสาร <ArrowUpRight className="w-4 h-4" aria-hidden />
+            </a>
+          </div>
+        </ScrollReveal>
       </div>
     </section>
   );

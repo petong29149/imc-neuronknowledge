@@ -11,16 +11,15 @@
 
 ## 2) Build
 - ผู้ทำ: Claude (Builder) • ควบคุมโดยเจ้าของโปรเจกต์
-- ไฟล์ที่เปลี่ยน: `app/page.tsx` (ใหม่), `app/hub/page.tsx` (ย้ายจาก `app/page.tsx` เนื้อหาเดิม), `components/sales/*` (SalesHeader, SalesHero, SalesPackages, SalesTransformation, SalesBots, SalesSystems, SalesContact, SalesFooter, SalesCtaButtons, SectionHeading), `lib/sales/links.ts`, `example.env` (คอมเมนต์), `docs/sales/*` (README + สไลด์), `docs/specs/SALES-01-sales-landing.md`, `docs/handoff/SALES-01.md`
-- คำสั่งตรวจที่รันและผล: `npx tsc --noEmit` → ผ่าน • `npx eslint app/page.tsx app/hub/page.tsx components/sales lib/sales` → ผ่าน • `npm run build` → ผ่าน (`/` และ `/hub` เป็น static) • ตรวจในเบราว์เซอร์: `/` และ `/hub` ทั้งจอ 1440px และมือถือ 375px, light/dark, ปุ่มทั้งสองชี้ปลายทางถูกต้อง
+- ไฟล์ที่เปลี่ยน: `app/page.tsx` (หน้าขายใหม่), `app/neuronknowledge/page.tsx` (หน้าแรกเดิมย้ายมา ใช้ header/footer ของหน้าขาย), `app/neuronhub/page.tsx` (ใหม่), `components/sales/*` (SalesHeader, SalesHero, SalesPackages, SalesTransformation, SalesSystems, SalesContact, SalesFooter, SalesCtaButtons, SectionHeading, NeuronHubShowcase), `lib/sales/links.ts`, `components/landing/McpHubSection.tsx` (เพิ่ม prop `showAdminLink` ค่าเริ่มต้น true), `example.env`, `docs/sales/*` (README + สไลด์), `docs/specs/SALES-01-sales-landing.md`, `docs/handoff/SALES-01.md`
+- คำสั่งตรวจที่รันและผล: ดูท้ายส่วนนี้
 - ขั้นตอนทดสอบด้วยมือ (ทำซ้ำได้):
-  1. `npm run dev` เปิด `/` — เห็นหน้าขาย ปุ่ม **เข้าสู่ IMC Chat** ชี้ไป `https://moc.imcinstitute.com` เปิดแท็บใหม่
-  2. กด **เข้าสู่ NeuronHub** — ไป `/hub` เห็นหน้าแรกเดิม (หัวข้อ "MCP Server & Knowledge Hub") และเมนู MCP Hub / สถาปัตยกรรม / คลังความรู้ เลื่อนไปยัง section ได้
-  3. กดโลโก้บน `/hub` — กลับ `/`
-  4. สลับ light/dark และย่อหน้าต่างเป็น 375px — ไม่มี scroll แนวนอน เมนูมือถือเปิดปิดได้
-  5. ตั้ง `NEXT_PUBLIC_CHAT_URL=https://example.com` แล้ว build ใหม่ — ปุ่ม IMC Chat ชี้ไปค่าใหม่
-- รอบแก้ไข 2026-10-26: เจ้าของโปรเจกต์ยืนยันชุด 5 แพ็กเกจ — เพิ่ม `SalesPackages` (แทน `SalesPillars`) และ `SalesBots`, ย้ายหลักฐาน 23 bots ไปส่วน Bot, ปรับเมนู/ชื่อ section; สไลด์ปรับเป็น 30 หน้า
-- สิ่งที่เบี่ยงจาก Spec + เหตุผล: ไม่มี (Spec เพิ่มข้อ 1.1 ชุดแพ็กเกจ)
+  1. `npm run dev` เปิด `/` — เห็นหน้าขาย 4 แพ็กเกจ ปุ่ม NeuronHub / NeuronKnowledge / เอกสารบริการ
+  2. กด **NeuronHub** — ไป `/neuronhub` เห็นภาพจำลองแชท (ป้าย "จำลอง") ปุ่ม Showcase ชี้ `https://plus.xn--42ca1c5gh2k.com` เปิดแท็บใหม่
+  3. กด **NeuronKnowledge** — ไป `/neuronknowledge` เห็นเนื้อหาหน้าแรกเดิม เมนู MCP Server / สถาปัตยกรรม / คลังความรู้ เลื่อนได้ และไม่มีปุ่ม login / register / Admin Console
+  4. กดปุ่ม "เอกสารรายละเอียดบริการ" — เปิด Google Doc ในแท็บใหม่
+  5. สลับ light/dark และย่อหน้าต่างเป็น 375px — ไม่มี scroll แนวนอน เมนูมือถือเปิดปิดได้
+- สิ่งที่เบี่ยงจาก Spec + เหตุผล: ไม่มี (Spec ปรับตามคำสั่งเจ้าของโปรเจกต์ 2026-10-26: เหลือ 4 แพ็กเกจ, เปลี่ยนชื่อเป็น NeuronHub/NeuronKnowledge, ปุ่มไปหน้าแนะนำแทนแอปจริง)
 
 ## 3) Review (AI)
 - (ยังไม่ได้ทำ — ให้ Reviewer ตรวจ `git diff staging...HEAD` เทียบ Spec และ `.github/ai-review/checklist.md`)
@@ -30,8 +29,8 @@
 - [ ] ย้ายการ์ดใน Miro (เมื่อมีการ์ด)
 
 ## เสนอการ์ดใหม่
-- เจ้าของไฟล์ (CORE-01): ถ้าต้องการให้เมนูใน `components/common/Navbar.tsx` บน `/hub` มีลิงก์ "หน้าขาย/AI Transformation" เพิ่ม ต้องให้ CORE-01 แก้ (ตอนนี้ใช้โลโก้กลับ `/` ได้อยู่แล้ว)
-- เจ้าของ (Maintainer): กำหนดที่อยู่จริงของ imc-chat-aiagent แล้วตั้ง `NEXT_PUBLIC_CHAT_URL` บน staging/production
+- เจ้าของ (Maintainer): กำหนดที่อยู่จริงของแอปแชท (NeuronHub) แล้วเพิ่มปุ่มเข้าใช้งานจริงในหน้า `/neuronhub`
+- เจ้าของ (Maintainer/ทีมขาย): ยืนยันราคาแพ็กเกจ แล้วตัดสินใจว่าจะเผยแพร่สไลด์ราคาหรือไม่
 
 ## เสนอเพิ่มใน memory
-- ไฟล์: decisions • ข้อความที่เสนอ: `## D-0xx หน้าแรกฝ่ายขาย` — `/` เป็นหน้าขาย (IMC Chat + NeuronHub + AI Transformation), หน้าแรกเดิมของ NeuronHub ย้ายไป `/hub`, ลิงก์แชทมาจาก `NEXT_PUBLIC_CHAT_URL` (ค่าเริ่มต้น moc.imcinstitute.com ชั่วคราว) — วันที่ 2026-10-26 ผู้ตัดสินใจ: เจ้าของโปรเจกต์
+- ไฟล์: decisions • ข้อความที่เสนอ: `## D-0xx หน้าแรกฝ่ายขายและชื่อผลิตภัณฑ์` — `/` เป็นหน้าขาย 4 แพ็กเกจ; NeuronHub = หน้าแชท AI (`/neuronhub`), NeuronKnowledge = โค้ดระบบนี้ ศูนย์รวม MCP Server (`/neuronknowledge` = หน้าแรกเดิม); ทั้งสองเป็นหน้าแนะนำ ไม่เข้าแอปจริง; Showcase `plus.คิดค้า.com` — วันที่ 2026-10-26 ผู้ตัดสินใจ: เจ้าของโปรเจกต์

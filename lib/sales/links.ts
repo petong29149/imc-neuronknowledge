@@ -1,17 +1,29 @@
 // Link targets for the sales front page (/).
-// The chat link is temporary: it points to the production chat until the final
-// address of the IMC chat app is decided. Set NEXT_PUBLIC_CHAT_URL to change it
-// without touching code.
+// The site is a brochure for now: both product buttons stay inside this app and
+// open a showcase page, not the working product.
 
-const DEFAULT_CHAT_URL = "https://moc.imcinstitute.com";
+/** NeuronHub = the AI chat product. Its brochure page lives here. */
+export const NEURONHUB_PATH = "/neuronhub";
 
-const chatFromEnv = process.env.NEXT_PUBLIC_CHAT_URL?.trim();
+/** NeuronKnowledge = knowledge & MCP hub. The original home page of this app lives here. */
+export const NEURONKNOWLEDGE_PATH = "/neuronknowledge";
 
-/** IMC Chat (imc-chat-aiagent). Opens in a new tab. */
-export const CHAT_URL = chatFromEnv ? chatFromEnv : DEFAULT_CHAT_URL;
+// Showcase built for a customer. The default uses the punycode form of
+// plus.คิดค้า.com so the link works everywhere; set NEXT_PUBLIC_SHOWCASE_URL
+// to change it without touching code.
+const DEFAULT_SHOWCASE_URL = "https://plus.xn--42ca1c5gh2k.com";
+const showcaseFromEnv = process.env.NEXT_PUBLIC_SHOWCASE_URL?.trim();
 
-/** The original NeuronHub home (Knowledge & MCP Hub) lives here. */
-export const HUB_PATH = "/hub";
+export const SHOWCASE_URL = showcaseFromEnv ? showcaseFromEnv : DEFAULT_SHOWCASE_URL;
+export const SHOWCASE_LABEL = "plus.คิดค้า.com";
+
+// Service description document (Google Doc) shown as a button on the sales page.
+// Set NEXT_PUBLIC_SERVICE_DOC_URL to point somewhere else.
+const DEFAULT_SERVICE_DOC_URL =
+  "https://docs.google.com/document/d/1bhRlgDfRusUEHe-xwgmcYo45X1NGr2zeBctaEHLSacA/edit?usp=sharing";
+const serviceDocFromEnv = process.env.NEXT_PUBLIC_SERVICE_DOC_URL?.trim();
+
+export const SERVICE_DOC_URL = serviceDocFromEnv ? serviceDocFromEnv : DEFAULT_SERVICE_DOC_URL;
 
 export const CONTACT = {
   phones: [

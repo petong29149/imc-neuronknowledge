@@ -1,5 +1,7 @@
+import React from "react";
 import {
   ArrowRight,
+  ArrowUpRight,
   BadgeCheck,
   Check,
   ClipboardCheck,
@@ -14,6 +16,7 @@ import {
 } from "lucide-react";
 import ScrollReveal from "@/components/common/ScrollReveal";
 import SectionHeading from "@/components/sales/SectionHeading";
+import { SERVICE_DOC_URL } from "@/lib/sales/links";
 
 const PRINCIPLES = [
   { icon: Repeat, title: "อบรม + Implement พร้อมกัน", text: "เรียนรู้จากงานจริง (On-the-job Training) ไม่ใช่อบรมแล้วจบ" },
@@ -26,7 +29,7 @@ const PRINCIPLES = [
 const PACKAGE_A = {
   tag: "แพ็กเกจ 1",
   name: "Quick-win Executive Dashboard",
-  duration: "ภายในไม่กี่วัน",
+  duration: "ระยะสั้น",
   for: "ผู้บริหารที่มีข้อมูลใน ERP หรือระบบอื่นจำนวนมาก แต่ดูยากและใช้ตัดสินใจได้ช้า",
   steps: [
     { when: "วันที่ 1", what: "อบรมปรับ Mindset 2–3 ชม. และกำหนดคำถามของผู้บริหาร" },
@@ -54,14 +57,31 @@ const PACKAGE_B = {
     "คู่มือใช้งานและดูแล Bots",
     "ทีมภายในที่สร้าง Bots ได้เอง",
     "รายงานสรุปตาม KPI และแผนต่อยอด",
+    "ทางเลือก: ดูแลและปรับปรุง Bots รายเดือน",
   ],
 };
 
 const JOURNEY = [
   { name: "Free Assessment", note: "ฟรี", text: "คุยกับผู้บริหาร/ทีม ประเมินงานที่เหมาะกับ AI และเสนองานนำร่อง" },
-  { name: "Workshop หรือ Quick-win", note: "ไม่กี่วัน", text: "อบรม 2–3 ชม. พร้อมลงมือกับงานจริง หรือทำ Executive Dashboard" },
+  { name: "Workshop หรือ Quick-win", note: "ระยะสั้น", text: "อบรม 2–3 ชม. พร้อมลงมือกับงานจริง หรือทำ Quick-win Dashboard" },
   { name: "AI Transformation", note: "1–2 เดือน", text: "อบรม + Implement พร้อมกัน สร้าง Bots ในงานจริง" },
-  { name: "ขยายและดูแล", note: "ต่อเนื่อง", text: "ต่อยอดด้วย Bots, IMC Chat, Knowledge & MCP Hub และ Consult รายเดือน" },
+  { name: "ขยายและดูแล", note: "ต่อเนื่อง", text: "ต่อยอดด้วย NeuronHub, NeuronKnowledge และ Consult / ดูแล Bots รายเดือน" },
+];
+
+const DEPARTMENTS = [
+  { name: "ผู้บริหาร", bots: ["COO"] },
+  { name: "ลูกค้า", bots: ["Zoom", "Gmail", "LINE training", "Calendar", "Salesforce", "LINE OA"] },
+  { name: "การตลาด", bots: ["Marketing", "VDO", "Webinar", "EDM", "Graphic", "Social Media", "Canva", "Content"] },
+  { name: "หลักสูตร", bots: ["Public Class", "Google Drive", "Web", "Course Outline", "In-House"] },
+  { name: "การเงิน", bots: ["Accounting", "FlowAccount", "Petty Cash"] },
+];
+
+const FLOW = [
+  "อีเมล New Register เข้ามา",
+  "บันทึกใน Salesforce",
+  "ออกใบเสนอราคา (FlowAccount)",
+  "ร่างอีเมลตอบกลับ",
+  "คนตรวจและอนุมัติก่อนส่ง",
 ];
 
 const GOVERNANCE = [
@@ -75,7 +95,7 @@ const KPIS = [
   { value: "3–5", label: "Bots ที่ใช้งานจริงในงานประจำ" },
   { value: "2–3", label: "กระบวนการที่เปลี่ยนวิธีทำงาน" },
   { value: "1+", label: "Bot ที่ทีมลูกค้าสร้างเองโดยไม่ต้องมี IMC" },
-  { value: "100%", label: "งานส่งออกที่ผ่านการอนุมัติโดยคน" },
+  { value: "ทุกงาน", label: "ที่ส่งออกภายนอกผ่านการอนุมัติโดยคน" },
 ];
 
 type Pkg = typeof PACKAGE_A;
@@ -187,13 +207,80 @@ export default function SalesTransformation() {
           ))}
         </div>
 
+        {/* proof: IMC's own bots */}
+        <ScrollReveal variant="fade-up">
+          <h3 className="mt-16 text-center text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">ตัวอย่างจริง: IMC ใช้ 23 Bots</h3>
+          <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">Agents (Grok Bot) แบ่งตามฝ่าย เชื่อมกับระบบที่ใช้งานจริง</p>
+        </ScrollReveal>
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <ScrollReveal variant="fade-right" className="lg:col-span-4 h-full">
+            <div className="h-full rounded-3xl p-8 bg-[#003d60] text-white flex flex-col justify-between">
+              <div>
+                <div className="text-7xl font-extrabold tracking-tight text-[#fec921]">23</div>
+                <div className="text-2xl font-bold">Bots</div>
+                <p className="mt-3 text-sm text-blue-100/90 leading-relaxed">
+                  ใช้งานจริงทุกฝ่ายใน IMC Institute ตั้งแต่ผู้บริหาร ลูกค้า การตลาด หลักสูตร จนถึงการเงิน
+                </p>
+              </div>
+              <div className="mt-6 pt-5 border-t border-white/20">
+                <div className="text-sm font-bold text-[#fec921]">ระบบที่ Bots ทำงานร่วมด้วย</div>
+                <p className="mt-1.5 text-sm text-blue-100/90">Gmail · Salesforce · FlowAccount · Google Drive/Sheets · Canva · LINE OA</p>
+              </div>
+            </div>
+          </ScrollReveal>
+          <ScrollReveal variant="fade-left" className="lg:col-span-8 h-full">
+            <div className="h-full rounded-3xl p-6 sm:p-7 bg-white dark:bg-[#0d1424] border border-slate-200/90 dark:border-white/10">
+              <div className="space-y-3">
+                {DEPARTMENTS.map((d) => (
+                  <div key={d.name} className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                    <div className="sm:w-28 shrink-0 text-sm font-bold text-[#003d60] dark:text-[#fec921]">
+                      {d.name} <span className="font-medium text-slate-400">({d.bots.length})</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {d.bots.map((b) => (
+                        <span
+                          key={b}
+                          className="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-white/10"
+                        >
+                          {b}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 pt-5 border-t border-slate-200/80 dark:border-white/10">
+                <div className="text-sm font-bold text-slate-900 dark:text-white mb-3">ตัวอย่าง Flow จริง: AI ร่าง คนอนุมัติ</div>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                  {FLOW.map((f, i) => (
+                    <React.Fragment key={f}>
+                      <span
+                        className={`px-3 py-1.5 rounded-xl ${
+                          i === 0
+                            ? "bg-[#003d60] text-white"
+                            : i === FLOW.length - 1
+                              ? "bg-amber-50 dark:bg-[#fec921]/10 text-amber-900 dark:text-[#fec921] border border-[#fec921]"
+                              : "bg-[#fec921] text-slate-900"
+                        }`}
+                      >
+                        {f}
+                      </span>
+                      {i < FLOW.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-slate-400" aria-hidden />}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </ScrollReveal>
+        </div>
+
         <ScrollReveal variant="fade-up" delay={100}>
           <div className="mt-14 rounded-3xl p-6 sm:p-7 bg-white dark:bg-[#0d1424] border border-slate-200/90 dark:border-white/10 flex flex-col md:flex-row md:items-center gap-5">
             <div className="w-12 h-12 rounded-2xl bg-[#fec921] text-slate-900 flex items-center justify-center shrink-0">
               <Rocket className="w-6 h-6" aria-hidden />
             </div>
             <div>
-              <div className="font-bold text-slate-900 dark:text-white">Quick-win ให้ผู้บริหาร ภายในไม่กี่วัน</div>
+              <div className="font-bold text-slate-900 dark:text-white">Quick-win ให้ผู้บริหาร: 2 กรณีศึกษา</div>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 องค์กรลูกค้า 2 แห่ง (ไม่เปิดเผยชื่อ) ปรับการแสดงผลข้อมูล ERP และข้อมูลอื่นให้ผู้บริหารใช้ตัดสินใจได้ ด้วย Claude และ ChatGPT
                 โดยเริ่มจากปรับ Mindset ผ่าน On-the-job Training แล้วเปลี่ยน Working Process ในบางงาน
@@ -253,12 +340,22 @@ export default function SalesTransformation() {
                 <p className="mt-1 text-sm sm:text-base text-blue-100">คุยกับทีม IMC เพื่อประเมินงานที่เหมาะกับ AI และเลือกงานนำร่อง โดยไม่มีค่าใช้จ่าย</p>
               </div>
             </div>
-            <a
-              href="#contact"
-              className="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-base font-bold text-slate-900 bg-[#fec921] hover:bg-[#f0bb10] transition-colors"
-            >
-              นัด Free Assessment <ArrowRight className="w-5 h-5" aria-hidden />
-            </a>
+            <div className="shrink-0 flex flex-col sm:flex-row gap-3">
+              <a
+                href="#contact"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-base font-bold text-slate-900 bg-[#fec921] hover:bg-[#f0bb10] transition-colors"
+              >
+                นัด Free Assessment <ArrowRight className="w-5 h-5" aria-hidden />
+              </a>
+              <a
+                href={SERVICE_DOC_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-base font-bold text-white border border-white/50 hover:bg-white/10 transition-colors"
+              >
+                อ่านเอกสารบริการ <ArrowUpRight className="w-5 h-5" aria-hidden />
+              </a>
+            </div>
           </div>
         </ScrollReveal>
       </div>

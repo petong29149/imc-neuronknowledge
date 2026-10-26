@@ -151,7 +151,8 @@ Input     : { query, collection?, top_k? }
 Output    : { results: [{ id, title, source,
                           page, snippet, score }] }`;
 
-export default function McpHubSection() {
+// showAdminLink=false is used by the sales brochure page (/neuronknowledge), which must not lead into the working app
+export default function McpHubSection({ showAdminLink = true }: { showAdminLink?: boolean } = {}) {
   return (
     <section
       id="mcp"
@@ -299,22 +300,26 @@ export default function McpHubSection() {
           </ScrollReveal>
         </div>
 
-        {/* Actions */}
-        <ScrollReveal variant="fade-up" delay={120}>
-          <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/admin/mcp"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 text-sm sm:text-base font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-md shadow-[#0055fa]/20 transition-all active:scale-[0.98]"
-            >
-              <Server className="w-4 h-4" />
-              <span>จัดการ MCP ใน Admin Console</span>
-            </Link>
-          </div>
-          <p className="mt-3 text-center text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
-            <FlaskConical className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Admin Console สำหรับผู้ดูแลระบบเท่านั้น (ต้องเข้าสู่ระบบ)</span>
-          </p>
-        </ScrollReveal>
+        {showAdminLink && (
+          <>
+            {/* Actions */}
+            <ScrollReveal variant="fade-up" delay={120}>
+              <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  href="/admin/mcp"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 text-sm sm:text-base font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-md shadow-[#0055fa]/20 transition-all active:scale-[0.98]"
+                >
+                  <Server className="w-4 h-4" />
+                  <span>จัดการ MCP ใน Admin Console</span>
+                </Link>
+              </div>
+              <p className="mt-3 text-center text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
+                <FlaskConical className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Admin Console สำหรับผู้ดูแลระบบเท่านั้น (ต้องเข้าสู่ระบบ)</span>
+              </p>
+            </ScrollReveal>
+          </>
+        )}
       </div>
     </section>
   );

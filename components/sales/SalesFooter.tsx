@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { CHAT_URL, HUB_PATH } from "@/lib/sales/links";
+import { NEURONHUB_PATH, NEURONKNOWLEDGE_PATH, SERVICE_DOC_URL } from "@/lib/sales/links";
+
+const LINK = "hover:text-[#0055fa] dark:hover:text-[#60a5fa] transition-colors";
 
 export default function SalesFooter() {
   return (
@@ -7,12 +9,12 @@ export default function SalesFooter() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500 dark:text-slate-400">
         <p>© {new Date().getFullYear()} IMC Institute · Knowledge People, A Better Tomorrow</p>
         <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2" aria-label="ลิงก์ท้ายหน้า">
-          <a href="#services" className="hover:text-[#0055fa] dark:hover:text-[#60a5fa] transition-colors">แพ็กเกจ</a>
-          <a href="#transformation" className="hover:text-[#0055fa] dark:hover:text-[#60a5fa] transition-colors">AI Transformation</a>
-          <a href="#bots" className="hover:text-[#0055fa] dark:hover:text-[#60a5fa] transition-colors">Bot</a>
-          <a href={CHAT_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#0055fa] dark:hover:text-[#60a5fa] transition-colors">IMC Chat</a>
-          <Link href={HUB_PATH} className="hover:text-[#0055fa] dark:hover:text-[#60a5fa] transition-colors">NeuronHub</Link>
-          <a href="#contact" className="hover:text-[#0055fa] dark:hover:text-[#60a5fa] transition-colors">ติดต่อ</a>
+          <Link href="/#services" className={LINK}>แพ็กเกจ</Link>
+          <Link href="/#transformation" className={LINK}>AI Transformation</Link>
+          <Link href={NEURONHUB_PATH} className={LINK}>NeuronHub</Link>
+          <Link href={NEURONKNOWLEDGE_PATH} className={LINK}>NeuronKnowledge</Link>
+          <a href={SERVICE_DOC_URL} target="_blank" rel="noopener noreferrer" className={LINK}>เอกสารบริการ</a>
+          <Link href="/#contact" className={LINK}>ติดต่อ</Link>
         </nav>
       </div>
     </footer>

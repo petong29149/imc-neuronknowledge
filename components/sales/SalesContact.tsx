@@ -12,7 +12,7 @@ export default function SalesContact() {
           <SectionHeading
             eyebrow="ติดต่อเรา"
             title="พร้อมเริ่ม AI Transformation แล้วหรือยัง?"
-            subtitle="ทักมาคุยกับทีม IMC Institute เพื่อนัด Free Assessment หรือขอเดโม IMC Chat และ NeuronHub"
+            subtitle="ทักมาคุยกับทีม IMC Institute เพื่อนัด Free Assessment หรือขอเดโม NeuronHub และ NeuronKnowledge"
           />
         </ScrollReveal>
 
@@ -74,7 +74,7 @@ export default function SalesContact() {
             <div className="h-full rounded-3xl p-7 sm:p-9 bg-[#003d60] text-white flex flex-col">
               <h3 className="text-xl font-extrabold tracking-tight">อยากลองใช้ระบบก่อน?</h3>
               <p className="mt-2 text-sm text-blue-100/90 leading-relaxed">
-                เข้าไปดู IMC Chat และ NeuronHub ได้เลย ก่อนคุยกับทีมขาย
+                เข้าไปดูหน้าแรกของ NeuronHub และ NeuronKnowledge ได้เลย ก่อนคุยกับทีมขาย
               </p>
               <SalesCtaButtons stack className="mt-6" />
             </div>

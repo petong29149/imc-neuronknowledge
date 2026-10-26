@@ -6,15 +6,16 @@ import { Menu, Moon, Sun, X } from "lucide-react";
 import { useTheme } from "@/app/theme-provider";
 import SalesCtaButtons from "@/components/sales/SalesCtaButtons";
 
-const NAV = [
+export type NavItem = { label: string; href: string };
+
+const DEFAULT_NAV: NavItem[] = [
   { label: "แพ็กเกจ", href: "#services" },
   { label: "AI Transformation", href: "#transformation" },
-  { label: "Bot", href: "#bots" },
-  { label: "IMC Chat & Hub", href: "#systems" },
+  { label: "NeuronHub · NeuronKnowledge", href: "#systems" },
   { label: "ติดต่อ", href: "#contact" },
 ];
 
-export default function SalesHeader() {
+export default function SalesHeader({ nav = DEFAULT_NAV }: { nav?: NavItem[] }) {
   const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -69,7 +70,7 @@ export default function SalesHeader() {
           </a>
 
           <nav className="hidden lg:flex items-center gap-1" aria-label="เมนูหลัก">
-            {NAV.map((n) => (
+            {nav.map((n) => (
               <a
                 key={n.href}
                 href={n.href}
@@ -106,7 +107,7 @@ export default function SalesHeader() {
 
         {open && (
           <div className="lg:hidden mt-3 pt-3 border-t border-slate-200/80 dark:border-white/10 space-y-1">
-            {NAV.map((n) => (
+            {nav.map((n) => (
               <a
                 key={n.href}
                 href={n.href}

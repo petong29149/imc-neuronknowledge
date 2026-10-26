@@ -1,25 +1,31 @@
 # SALES-01 — หน้าแรกฝ่ายขาย (Sales Landing)
 
-- Route: `/` (ใหม่) และ `/hub` (หน้าแรกเดิมย้ายมา) • Branch: `page/sales-landing` • บทบาท: ผู้เยี่ยมชมทั่วไป (ไม่ต้อง login)
+- Route: `/` (หน้าขาย), `/neuronhub` (หน้าแนะนำ NeuronHub), `/neuronknowledge` (หน้าแรกเดิมของแอปนี้ ย้ายมา) • Branch: `page/sales-landing` • บทบาท: ผู้เยี่ยมชมทั่วไป (ไม่ต้อง login)
 - ที่มา: คำสั่งเจ้าของโปรเจกต์ (แชท 2026-10-26) — ยังไม่มีการ์ดใน Miro ใช้ ID ชั่วคราว `SALES-01`
 
 ## 1. เป้าหมาย
-ทำหน้าแรกใหม่ซ้อนหน้าเดิม ใช้ขายให้ลูกค้าองค์กร อธิบายแต่ละระบบ และมีส่วน AI Transformation ตามเอกสารแนวคิดบริการ พร้อมปุ่มสองปุ่ม
+ทำหน้าแรกใหม่ซ้อนหน้าเดิม ใช้ **ขาย/แนะนำ** ให้ลูกค้าองค์กร ยังไม่ใช่ตัวผลิตภัณฑ์จริง อธิบายแต่ละระบบ มีส่วน AI Transformation ตามเอกสารแนวคิดบริการ และลิงก์เอกสารบริการ
 
-### 1.1 ชุดแพ็กเกจ (เจ้าของโปรเจกต์ยืนยันแล้ว 2026-10-26)
-- กลุ่มบริการ (ทีม IMC ลงมือทำ): แพ็กเกจ 1 Quick-win Dashboard (ไม่กี่วัน), แพ็กเกจ 2 AI Transformation (1–2 เดือน), แพ็กเกจ 3 Bot ทำงานแทนคน (Bot Starter / Department Bot Pack / Bot Care)
-- กลุ่มแพลตฟอร์ม (ใช้งานต่อเนื่อง): แพ็กเกจ 4 IMC Chat (ใช้ร่วม / แยกของตัวเอง), แพ็กเกจ 5 Knowledge & MCP Hub (Ready / Custom / Hybrid, Cloud / On-premise)
-- ทางเข้า: Free Assessment, Workshop • ชุดรวม: Starter (Quick-win + IMC Chat), Transformation Suite (แพ็กเกจ 2+3+4+5)
-- ราคาแพ็กเกจ 3, 4, 5 ยังไม่กำหนด หน้าเว็บสาธารณะไม่แสดงราคา
+### 1.1 ชื่อและความหมาย (เจ้าของโปรเจกต์ยืนยัน 2026-10-26)
+- **NeuronHub** = หน้าแชท AI (เดิมเรียก IMC Chat) — มีหน้าแนะนำที่ `/neuronhub` และลิงก์ไป Showcase ที่ทำให้ลูกค้า `plus.คิดค้า.com`
+- **NeuronKnowledge** = โค้ดของระบบนี้ เป็นศูนย์รวม MCP Server และความรู้ — หน้าแนะนำคือหน้าแรกเดิมที่ `/neuronknowledge` (ไม่มีลิงก์เข้า login / register / Admin)
+
+### 1.2 ชุดแพ็กเกจ (4 แพ็กเกจ)
+- กลุ่มบริการ (ทีม IMC ลงมือทำ): แพ็กเกจ 1 Quick-win Dashboard, แพ็กเกจ 2 AI Transformation (สร้าง Bots ที่ทำงานแทนคน รวมอยู่ในแพ็กเกจนี้ ไม่แยก)
+- กลุ่มแพลตฟอร์ม (ใช้งานต่อเนื่อง): แพ็กเกจ 3 NeuronHub (ใช้ร่วม / แยกของตัวเอง), แพ็กเกจ 4 NeuronKnowledge (Ready / Custom / Hybrid, Cloud / On-premise)
+- ทางเข้า: Free Assessment, Workshop • ชุดรวม: Starter (Quick-win + NeuronHub), Transformation Suite (AI Transformation + NeuronHub + NeuronKnowledge)
+- ราคาแพ็กเกจ 3, 4 และการดูแลต่อเนื่องยังไม่กำหนด หน้าเว็บสาธารณะไม่แสดงราคา
+- ลดคำที่ดูเกินจริง: ไม่ใช้ "ภายในไม่กี่วัน", "ทันที", "100%", "เร็วที่สุด" ในข้อความขาย
 
 ## 2. Acceptance Criteria
-1. `/` แสดงหน้าขาย: Hero, 5 แพ็กเกจ (ดูข้อ 1.1), ส่วน Quick-win Dashboard + AI Transformation, ส่วน Bot ทำงานแทนคน, ส่วน IMC Chat + Knowledge & MCP Hub (การ์ดอธิบายพร้อมปุ่ม), ติดต่อ
-2. ปุ่ม **IMC Chat** เปิด `NEXT_PUBLIC_CHAT_URL` (ค่าเริ่มต้น `https://moc.imcinstitute.com`) ในแท็บใหม่ด้วย `rel="noopener noreferrer"`
-3. ปุ่ม **NeuronHub** ไป `/hub` ซึ่งต้องเป็นหน้าแรกเดิมของ NeuronHub ที่เนื้อหาไม่เปลี่ยน (anchor `#mcp`, `#architecture`, `#library` ยังทำงาน)
-4. โลโก้ใน Navbar ของ `/hub` กลับมาที่ `/`
-5. รองรับ light/dark และมือถือ (375px) ไม่มี scroll แนวนอน
-6. ข้อความที่เป็นฟีเจอร์ที่ยังไม่เปิดใช้ ต้องระบุว่า "กำลังเปิดตัว" ไม่ระบุเป็นของที่พร้อมใช้ (ตาม lessons: landing ห้ามอ้างฟีเจอร์ที่ยังไม่มี)
-7. ไม่แสดงราคาบนหน้าสาธารณะ และไม่มี form ที่เก็บข้อมูล (ติดต่อผ่านโทรศัพท์ อีเมล LINE Facebook)
+1. `/` แสดงหน้าขาย: Hero, 4 แพ็กเกจ, ส่วน Quick-win + AI Transformation (รวมหลักฐาน 23 bots), ส่วน NeuronHub + NeuronKnowledge, ติดต่อ
+2. ปุ่มบน Hero/เมนู: **NeuronHub** ไป `/neuronhub` และ **NeuronKnowledge** ไป `/neuronknowledge` (ทั้งสองอยู่ในแอปนี้ ไม่เปิดแอปจริง)
+3. `/neuronhub` เป็นหน้าแนะนำ (มีภาพจำลองหน้าแชทที่ป้ายว่า "จำลอง") และมีปุ่มไป Showcase `plus.คิดค้า.com` (ค่าตั้งผ่าน `NEXT_PUBLIC_SHOWCASE_URL`, ค่าเริ่มต้น punycode `plus.xn--42ca1c5gh2k.com`) เปิดแท็บใหม่ด้วย `rel="noopener noreferrer"`
+4. `/neuronknowledge` แสดงเนื้อหาหน้าแรกเดิม (anchor `#mcp`, `#architecture`, `#library` ใช้ได้) ภายใต้ header/footer ของหน้าขาย และไม่มีลิงก์ไป `/login`, `/register`, `/admin`
+5. หน้าขายมีปุ่ม "เอกสารรายละเอียดบริการ" ชี้ Google Doc (`NEXT_PUBLIC_SERVICE_DOC_URL`) เปิดแท็บใหม่
+6. รองรับ light/dark และมือถือ (375px) ไม่มี scroll แนวนอน
+7. ฟีเจอร์ที่ยังไม่เปิดใช้ต้องระบุว่า "กำลังเปิดตัว" (ตาม lessons: landing ห้ามอ้างฟีเจอร์ที่ยังไม่มี)
+8. ไม่แสดงราคาบนหน้าสาธารณะ และไม่มี form ที่เก็บข้อมูล (ติดต่อผ่านโทรศัพท์ อีเมล LINE Facebook)
 
 ## 3. ขอบเขตข้อมูล
 ไม่ใช้ฐานข้อมูล ไม่มี API ใหม่ ไม่มี migration ไม่มี `logActivity()` (ไม่มีการสร้าง/แก้/ลบข้อมูล)
@@ -31,8 +37,9 @@ Server component เป็นหลัก มี client เฉพาะ `SalesHe
 ไม่มี
 
 ## 8. ไฟล์ที่เป็นเจ้าของ
-- `app/page.tsx`, `app/hub/page.tsx` (ย้ายมา), `components/sales/**`, `lib/sales/**`
+- `app/page.tsx`, `app/neuronhub/page.tsx`, `app/neuronknowledge/page.tsx` (ย้ายมาจาก `app/page.tsx` เดิม), `components/sales/**`, `lib/sales/**`
 - `docs/sales/**`, `docs/specs/SALES-01-sales-landing.md`, `docs/handoff/SALES-01.md`
-- `example.env` (เพิ่มคอมเมนต์ `NEXT_PUBLIC_CHAT_URL` เท่านั้น)
+- `example.env` (เพิ่มคอมเมนต์ตัวแปร `NEXT_PUBLIC_*` ของหน้าขาย)
+- แก้เล็กน้อยในไฟล์ที่ไม่มีเจ้าของ: `components/landing/McpHubSection.tsx` เพิ่ม prop `showAdminLink` (ค่าเริ่มต้น `true` ไม่เปลี่ยนพฤติกรรมเดิม)
 
-ไม่แตะ: `components/common/**` (Navbar, Footer ใช้ตามเดิม), `app/layout.tsx`, `app/globals.css`, `middleware.ts`
+ไม่แตะ: `components/common/**` (Navbar, Footer เดิมไม่ได้ใช้ในหน้าใหม่แต่ยังอยู่), `app/layout.tsx`, `app/globals.css`, `middleware.ts`
