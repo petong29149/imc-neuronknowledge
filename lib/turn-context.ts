@@ -81,8 +81,11 @@ export async function prepareTurnContext(input: TurnContextInput) {
         skills: withTools && turnTools.builtinNames.includes('load_skill') ? skills : [],
         builtinToolNames: withTools ? turnTools.builtinNames : [],
         mcpToolNames: withTools ? turnTools.mcpNames : [],
+        // Sources come only from MCP tool results
+        citations: withTools && turnTools.mcpNames.length > 0,
         now,
       }),
-    synthesisPrompt: () => buildSynthesisSystemPrompt({ ...identity, now }),
+    synthesisPrompt: () =>
+      buildSynthesisSystemPrompt({ ...identity, citations: turnTools.mcpNames.length > 0, now }),
   };
 }

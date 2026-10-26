@@ -17,6 +17,21 @@ const SYNTHESIS_DIRECTIVE =
 
 const TIME_ZONE = 'Asia/Bangkok';
 
+/**
+ * Added for every agent that has MCP tools. The numbers come from the "Citation index" that
+ * lib/citations.ts puts at the top of each MCP tool result; the chat UI turns the markers into
+ * buttons that open the source.
+ */
+const CITATION_RULES = [
+  '## Citations',
+  'Results of MCP tools start with a "Citation index" that numbers their sources, and each item in the result carries its number as "source_id". When a statement in your answer is based on one of those items, put the marker [cite:N] right after the statement, where N is the source_id of the item you took it from (several sources: [cite:2][cite:5]).',
+  '- Mark every sentence or bullet that states a fact or figure taken from a source, including figures taken from a table.',
+  '- Use only numbers that appear in a Citation index in this conversation. Never invent a number.',
+  '- Cite the item that actually contains the statement. Do not cite your own knowledge, calculator results, or skills.',
+  '- For a figure you computed from a cited table, cite that table.',
+  '- Do not add a list of sources at the end; the interface shows the details when a marker is clicked.',
+].join('\n');
+
 export interface SystemPromptInput {
   /** Global working rules; take precedence over everything below them */
   corePrompt?: string;
@@ -31,6 +46,8 @@ export interface SystemPromptInput {
   skills: SkillSummary[];
   builtinToolNames: string[];
   mcpToolNames: string[];
+  /** Ask for [cite:N] markers (the turn offers MCP tools) */
+  citations?: boolean;
   now?: Date;
 }
 
@@ -94,7 +111,7 @@ function toolsSection(builtinToolNames: string[], mcpToolNames: string[]): strin
 /**
  * The one place the agent system prompt is assembled. Sections, in order:
  * core rules, persona, agent, chat prompt, effort directive, skills, tools,
- * current date (last, since it changes every turn).
+ * citation rules, current date (last, since it changes every turn).
  */
 export function buildSystemPrompt(input: SystemPromptInput): string {
   return [
@@ -102,6 +119,7 @@ export function buildSystemPrompt(input: SystemPromptInput): string {
     input.effortDirective,
     skillsSection(input.skills),
     toolsSection(input.builtinToolNames, input.mcpToolNames),
+    input.citations ? CITATION_RULES : null,
     formatCurrentDateTime(input.now),
   ]
     .filter(Boolean)
@@ -112,8 +130,15 @@ export function buildSystemPrompt(input: SystemPromptInput): string {
  * System prompt for the final no-tools synthesis call: core rules, persona, agent and date only
  * (no skill or tool listings), plus the instruction to answer now.
  */
-export function buildSynthesisSystemPrompt(input: IdentityInput & { now?: Date }): string {
-  return [...identitySections(input), formatCurrentDateTime(input.now), SYNTHESIS_DIRECTIVE]
+export function buildSynthesisSystemPrompt(
+  input: IdentityInput & { citations?: boolean; now?: Date }
+): string {
+  return [
+    ...identitySections(input),
+    input.citations ? CITATION_RULES : null,
+    formatCurrentDateTime(input.now),
+    SYNTHESIS_DIRECTIVE,
+  ]
     .filter(Boolean)
     .join('\n\n');
 }
