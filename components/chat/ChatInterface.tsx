@@ -13,7 +13,10 @@ import {
   type CitationSource,
 } from "@/lib/citations";
 import Link from "next/link";
+import { CHAT_PRODUCTION_HOST, CHAT_PRODUCTION_URL } from "@/lib/site-links";
 import {
+  FlaskConical,
+  ExternalLink,
   Send,
   Plus,
   MessageSquare,
@@ -1475,6 +1478,9 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
             <span className="text-sm font-bold tracking-tight">
               Neuron<span className="text-[#0055fa]">Chat</span>
             </span>
+            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-md bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-500/30">
+              Test
+            </span>
           </Link>
           <div className="flex items-center gap-0.5">
             <button
@@ -1664,7 +1670,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
               <div className="absolute bottom-full left-2 right-2 mb-2 p-1.5 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl z-40 space-y-1 animate-popover">
                 {user?.role === "admin" && (
                   <Link
-                    href="/admin/dashboard"
+                    href="/admin/mcp"
                     onClick={() => setUserMenuOpen(false)}
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#0055fa] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer text-left"
                   >
@@ -1672,6 +1678,17 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                     <span>Admin Console</span>
                   </Link>
                 )}
+
+                <a
+                  href={CHAT_PRODUCTION_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#0055fa] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer text-left"
+                >
+                  <ExternalLink className="w-4 h-4 shrink-0" />
+                  <span>ใช้งานจริงที่ {CHAT_PRODUCTION_HOST}</span>
+                </a>
 
                 <button
                   type="button"
@@ -1739,8 +1756,31 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
 
       {/* ═══════════ MAIN CHAT AREA ═══════════ */}
       <div className="relative flex-1 flex flex-col min-w-0">
-        {/* Top-left controls: sidebar toggle + agent selector */}
-        <div className="absolute top-3 left-3 z-30 flex items-center gap-2">
+        {/* This page is a test console; real end-user chat is a separate system */}
+        <div
+          role="note"
+          className="shrink-0 h-8 px-3 sm:px-4 flex items-center justify-between gap-3 text-[11px] sm:text-xs bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200/80 dark:border-amber-500/20 text-amber-900 dark:text-amber-200"
+        >
+          <span className="flex items-center gap-1.5 min-w-0">
+            <FlaskConical className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            <span className="font-semibold shrink-0">Test console</span>
+            <span className="hidden sm:inline truncate text-amber-800/90 dark:text-amber-200/80">
+              · ใช้ทดสอบ MCP Tools และ Agent ไม่ใช่ช่องทางสำหรับผู้ใช้จริง
+            </span>
+          </span>
+          <a
+            href={CHAT_PRODUCTION_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-semibold whitespace-nowrap text-[#0046d1] dark:text-blue-300 hover:underline shrink-0"
+          >
+            <span>ใช้งานจริงที่ {CHAT_PRODUCTION_HOST}</span>
+            <ExternalLink className="w-3 h-3" aria-hidden="true" />
+          </a>
+        </div>
+
+        {/* Top-left controls: sidebar toggle + agent selector (below the 2rem banner) */}
+        <div className="absolute top-11 left-3 z-30 flex items-center gap-2">
           {!sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(true)}

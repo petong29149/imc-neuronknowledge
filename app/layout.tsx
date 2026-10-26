@@ -22,8 +22,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NeuronKnowledge | Enterprise Domain Knowledge Agent Platform",
-  description: "AI Harness ระดับองค์กร ผสาน Ready Knowledge + Custom Enterprise Data + Qdrant Vector Search + OpenRouter LLMs พร้อมระบบ Source Citation และ Enterprise Security โดย IMC Institute",
+  title: "NeuronKnowledge | MCP Server & Knowledge Hub",
+  description: "ศูนย์กลาง MCP Server และคลังความรู้สำหรับ AI Agent ขององค์กร รวม MCP Tools และ Ready Knowledge ของ IMC Institute ให้ระบบแชทและ MCP client อื่นเรียกใช้ พร้อมแหล่งอ้างอิงที่ตรวจสอบย้อนกลับได้",
   icons: {
     icon: "/favicon.ico",
   },
