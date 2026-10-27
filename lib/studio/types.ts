@@ -5,7 +5,16 @@
 import type { UserRole } from '@/lib/auth';
 
 // ---------- S02 Data Connections
-export type ConnectionType = 'postgresql' | 'mysql' | 'mssql';
+// Extended by S02 on 2026-10-25 (approved by the project owner); data_connections.type CHECK must match.
+export type ConnectionType =
+  | 'postgresql'
+  | 'mysql'
+  | 'mssql'
+  | 'mariadb'
+  | 'cockroachdb'
+  | 'redshift'
+  | 'oracle'
+  | 'clickhouse';
 export type ConnectionStatus = 'untested' | 'ok' | 'error';
 
 /** The stored password never leaves the server; the API only reports whether one is set. */
