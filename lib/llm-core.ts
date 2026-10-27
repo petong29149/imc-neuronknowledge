@@ -3,6 +3,7 @@ import { resolveEndpointUrl, getLLMHeaders } from '@/lib/llm-utils';
 import type { AgentRuntime } from '@/lib/agents';
 import { executeTool } from '@/lib/tool-executor';
 import { prepareTurnContext } from '@/lib/turn-context';
+import { prepareCitations, nextCitationId, type CitationSource } from '@/lib/citations';
 import { randomUUID } from 'crypto';
 
 export type EffortLevel = 'low' | 'medium' | 'high';
@@ -62,6 +63,8 @@ export interface StreamEvent {
   error?: string;
   status_message?: string;
   is_synthesis?: boolean;
+  /** On 'tool_call_result': the sources the result contains, numbered for [cite:N] markers */
+  sources?: CitationSource[];
   usage?: TokenUsage;
   title?: string;
   /** On 'done': the user stopped the turn before it finished */
@@ -244,6 +247,7 @@ function buildMessage(overrides: Partial<ChatHistoryMessage> & { role: string; c
     output_tokens: overrides.output_tokens ?? null,
     total_tokens: overrides.total_tokens ?? null,
     reasoning_content: overrides.reasoning_content ?? null,
+    sources: overrides.sources ?? null,
     created_at: overrides.created_at ?? new Date().toISOString(),
   };
 }
@@ -294,6 +298,8 @@ export async function runLLMAgentLoop(
 
   // Fetch full chat history from the chats row
   const history = await getChatHistory(chatId);
+  // Citation numbers continue from the highest one already used in this chat
+  let nextSourceId = nextCitationId(history);
 
   // Assemble initial messages array for the LLM
   let messages: any[] = [];
@@ -726,12 +732,31 @@ export async function runLLMAgentLoop(
           execResult = { content: STOPPED_TOOL_RESULT, isError: true };
         }
 
+        // MCP tool results carry sources the answer can cite; number them and show the model
+        // the index (what is saved and replayed is exactly what the model saw)
+        let toolContent: string = execResult.content;
+        let toolSources: CitationSource[] = [];
+        if (!stopped && !turnTools.builtinNames.includes(tc.name)) {
+          const cited = prepareCitations({
+            toolName: tc.name,
+            toolCallId: tc.id,
+            args: parsedArgs,
+            content: execResult.content,
+            isError: !!execResult.isError,
+            startId: nextSourceId,
+          });
+          toolContent = cited.content;
+          toolSources = cited.sources;
+          nextSourceId += toolSources.length;
+        }
+
         emit({
           type: 'tool_call_result',
           tool_name: tc.name,
           tool_call_id: tc.id,
-          result: execResult.content,
+          result: toolContent,
           is_error: execResult.isError,
+          sources: toolSources.length > 0 ? toolSources : undefined,
           step: currentLoop,
         });
 
@@ -740,18 +765,19 @@ export async function runLLMAgentLoop(
           role: 'tool',
           tool_call_id: tc.id,
           name: tc.name,
-          content: execResult.content,
+          content: toolContent,
         });
 
         // Save tool response message to chat_history
         await appendChatHistory(chatId, [
           buildMessage({
             role: 'tool',
-            content: execResult.content,
+            content: toolContent,
             model_id: modelInfo.id,
             model_name: null,
             tool_call_id: tc.id,
             name: tc.name,
+            sources: toolSources.length > 0 ? toolSources : null,
           }),
         ]);
       }

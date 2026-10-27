@@ -5,6 +5,13 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import SettingsModal, { PatchNotesModal, seenVersionKey } from "@/components/chat/SettingsModal";
 import UserGuideModal, { guideSeenKey } from "@/components/chat/UserGuideModal";
+import CitationModal, { CitationProvider, CitationMarks } from "@/components/chat/CitationModal";
+import {
+  hasCitationTags,
+  splitCitationTags,
+  stripCitationTags,
+  type CitationSource,
+} from "@/lib/citations";
 import Link from "next/link";
 import {
   Send,
@@ -98,6 +105,8 @@ export interface ChatMessage {
   output_tokens?: number | null;
   total_tokens?: number | null;
   reasoning_content?: string | null;
+  /** Numbered sources of an MCP tool result (tool messages only) */
+  sources?: CitationSource[] | null;
   created_at: string;
 }
 
@@ -106,6 +115,8 @@ export interface AgentToolCallItem {
   name: string;
   args: any;
   result?: string;
+  /** What the answer can cite from this result, as [cite:N] */
+  sources?: CitationSource[];
   status: "running" | "done" | "error";
   step?: number;
 }
@@ -230,6 +241,7 @@ export function groupMessagesIntoTurns(messages: ChatMessage[]): ConversationTur
           const tool = step.tools.find((t) => t.id === msg.tool_call_id || t.name === msg.name);
           if (tool) {
             tool.result = msg.content;
+            tool.sources = msg.sources ?? undefined;
             matched = true;
             break;
           }
@@ -237,7 +249,9 @@ export function groupMessagesIntoTurns(messages: ChatMessage[]): ConversationTur
         if (!matched && currentAssistantTurn.steps.length > 0) {
           const lastStep = currentAssistantTurn.steps[currentAssistantTurn.steps.length - 1];
           if (lastStep.tools.length > 0) {
-            lastStep.tools[lastStep.tools.length - 1].result = msg.content;
+            const lastTool = lastStep.tools[lastStep.tools.length - 1];
+            lastTool.result = msg.content;
+            lastTool.sources = msg.sources ?? undefined;
           }
         }
       }
@@ -329,6 +343,31 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
   const loadConversationRef = useRef<((idOrSessionId: string | number) => Promise<void>) | null>(null);
 
   const turns = useMemo(() => groupMessagesIntoTurns(messages), [messages]);
+
+  // Sources of every tool result in the open chat (including the answer being streamed), so a
+  // [cite:N] marker resolves wherever it appears
+  const citationSources = useMemo(() => {
+    const byId = new Map<number, CitationSource>();
+    const collect = (list: ConversationTurn[]) => {
+      for (const turn of list) {
+        if (turn.role !== "assistant") continue;
+        for (const step of turn.steps) {
+          for (const tool of step.tools) {
+            for (const source of tool.sources ?? []) byId.set(source.id, source);
+          }
+        }
+      }
+    };
+    collect(turns);
+    if (liveStreamingTurn) collect([liveStreamingTurn]);
+    return byId;
+  }, [turns, liveStreamingTurn]);
+  const [openCitationId, setOpenCitationId] = useState<number | null>(null);
+  const citationContext = useMemo(
+    () => ({ sources: citationSources, open: setOpenCitationId }),
+    [citationSources]
+  );
+  const openCitation = openCitationId !== null ? citationSources.get(openCitationId) ?? null : null;
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     followOutputRef.current = true;
@@ -632,6 +671,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                             ...t,
                             status: (data.is_error ? "error" : "done") as "done" | "error",
                             result: data.result,
+                            sources: data.sources,
                           }
                         : t
                     ),
@@ -1873,28 +1913,30 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
             </div>
           ) : (
             /* Unified Chat Turns Area */
-            <div className="w-full max-w-3xl mx-auto px-4 pt-16 pb-6 space-y-6 animate-chat-enter">
-              {turns.map((turn) =>
-                turn.role === "user" ? (
-                  <UserBubble key={turn.id} turn={turn} userName={user?.name || "User"} />
-                ) : (
+            <CitationProvider value={citationContext}>
+              <div className="w-full max-w-3xl mx-auto px-4 pt-16 pb-6 space-y-6 animate-chat-enter">
+                {turns.map((turn) =>
+                  turn.role === "user" ? (
+                    <UserBubble key={turn.id} turn={turn} userName={user?.name || "User"} />
+                  ) : (
+                    <UnifiedAssistantBubble
+                      key={turn.id}
+                      turn={turn}
+                      onCopy={handleCopyMessage}
+                    />
+                  )
+                )}
+
+                {/* Real-Time Live Streaming Turn */}
+                {liveStreamingTurn && (
                   <UnifiedAssistantBubble
-                    key={turn.id}
-                    turn={turn}
+                    turn={liveStreamingTurn}
+                    isLive={true}
                     onCopy={handleCopyMessage}
                   />
-                )
-              )}
-
-              {/* Real-Time Live Streaming Turn */}
-              {liveStreamingTurn && (
-                <UnifiedAssistantBubble
-                  turn={liveStreamingTurn}
-                  isLive={true}
-                  onCopy={handleCopyMessage}
-                />
-              )}
-            </div>
+                )}
+              </div>
+            </CitationProvider>
           )}
         </div>
 
@@ -1937,6 +1979,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
         </div>
       </div>
 
+      {openCitation && <CitationModal source={openCitation} onClose={() => setOpenCitationId(null)} />}
       {settingsOpen && (
         <SettingsModal onClose={() => setSettingsOpen(false)} />
       )}
@@ -1986,7 +2029,8 @@ function UnifiedAssistantBubble({
   }, [isLive, turn.isStreaming]);
 
   const handleCopy = () => {
-    onCopy(turn.finalContent);
+    // The [cite:N] markers only make sense inside the chat (as buttons), so they are left out of the copy
+    onCopy(stripCitationTags(turn.finalContent));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -2456,6 +2500,21 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
 // ────────────── Inline Markdown Renderer ──────────────
 
 function InlineMarkdown({ text }: { text: string }) {
+  // [cite:N] markers become buttons that open the source; the text around them is rendered as usual
+  if (hasCitationTags(text)) {
+    return (
+      <>
+        {splitCitationTags(text).map((segment, index) =>
+          segment.type === "cite" ? (
+            <CitationMarks key={index} ids={segment.ids} />
+          ) : (
+            <InlineMarkdown key={index} text={segment.text} />
+          )
+        )}
+      </>
+    );
+  }
+
   const parts: React.ReactNode[] = [];
   let remaining = text;
   let key = 0;

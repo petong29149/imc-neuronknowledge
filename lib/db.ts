@@ -1,5 +1,6 @@
 import { Pool, QueryResult, QueryResultRow } from 'pg';
 import { SAMPLE_SKILLS, DEFAULT_AGENT } from '@/lib/seed-data';
+import type { CitationSource } from '@/lib/citations';
 
 // Global singleton pool for Next.js hot reload support in development
 declare global {
@@ -66,6 +67,8 @@ export interface ChatHistoryMessage {
   total_tokens: number | null;
   /** Reasoning / thinking tokens (e.g. DeepSeek-R1, Qwen) */
   reasoning_content: string | null;
+  /** Numbered sources extracted from an MCP tool result (tool turns only); see lib/citations.ts */
+  sources?: CitationSource[] | null;
   /** ISO-8601 timestamp of when this turn was created */
   created_at: string;
 }
