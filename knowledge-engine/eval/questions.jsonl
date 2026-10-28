@@ -1,0 +1,8 @@
+# คำถามสำหรับวัดผลการค้นหา (plan T11) — 1 บรรทัด = 1 คำถาม (JSON) · บรรทัดที่ขึ้นต้นด้วย # คือคำอธิบาย
+# ต้องมี: q (คำถาม), org_id และอย่างน้อย 1 ใน expected_doc_id / expected_filename / expected_citation_contains
+# kind: general (ถามตามความหมาย) / name (ชื่อเฉพาะ, รหัส) / number (ตัวเลข, วันที่) — ควรมี name+number ≥ 30%
+# doc_id ดูได้จากหน้า "คลังความรู้" ในแอป หรือ tool list_documents
+# ตัวอย่าง 3 ข้อด้านล่างเป็นรูปแบบเท่านั้น: แทนด้วยคำถามจริง 30–50 ข้อจากเอกสารจริงขององค์กร ครอบทุกชนิดไฟล์ (PDF, DOCX, PPTX, TXT/MD)
+{"q": "พนักงานลาพักร้อนได้ปีละกี่วัน", "org_id": "acme", "expected_filename": "employee-handbook.pdf", "expected_citation_contains": "หน้า 12", "kind": "general"}
+{"q": "แบบฟอร์ม KNOW-07 ใช้ทำอะไร", "org_id": "acme", "expected_filename": "forms.docx", "kind": "name"}
+{"q": "เบิกค่าที่พักต่างจังหวัดได้สูงสุดคืนละเท่าไร", "org_id": "acme", "expected_filename": "travel-policy.pptx", "expected_citation_contains": "สไลด์ 4", "kind": "number"}

@@ -286,13 +286,35 @@ export async function testAndSyncMCPServer(serverId: number) {
   }
 }
 
+/** Where an MCP tool offered to the model really lives. */
+export interface MCPToolRef {
+  serverId: number;
+  toolId: number;
+  serverName: string;
+  /** The tool's own name on its server (what callTool must send) */
+  toolName: string;
+}
+
+const FUNCTION_NAME_MAX = 64;
+
+/** A function name the model accepts: ^[a-zA-Z0-9_-]{1,64}$ */
+function functionName(raw: string): string {
+  const cleaned = raw.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'tool';
+  return cleaned.slice(0, FUNCTION_NAME_MAX);
+}
+
 /**
  * Returns all active & enabled MCP tools formatted for OpenAI Function Calling,
- * limited to `allowedToolIds` when given (an agent's bound tools)
+ * limited to `allowedToolIds` when given (an agent's bound tools).
+ *
+ * Several servers can expose the same tool name (e.g. one Knowledge Engine server per
+ * organization, each with `search_knowledge`). Such tools are offered as
+ * `<server>__<tool>` so every function name is unique, and `toolMap` maps each offered
+ * name back to the exact tool id — execution never looks a tool up by name alone.
  */
 export async function getEnabledMCPTools(allowedToolIds?: number[]): Promise<{
   tools: OpenAIToolDefinition[];
-  toolMap: Map<string, { serverId: number; toolId: number; serverName: string }>;
+  toolMap: Map<string, MCPToolRef>;
 }> {
   const result = await query(
     `SELECT t.*, s.name as server_name, s.is_active as server_active
@@ -304,8 +326,13 @@ export async function getEnabledMCPTools(allowedToolIds?: number[]): Promise<{
     [allowedToolIds ?? null]
   );
 
+  const nameCounts = new Map<string, number>();
+  for (const row of result.rows) {
+    nameCounts.set(row.name, (nameCounts.get(row.name) ?? 0) + 1);
+  }
+
   const tools: OpenAIToolDefinition[] = [];
-  const toolMap = new Map<string, { serverId: number; toolId: number; serverName: string }>();
+  const toolMap = new Map<string, MCPToolRef>();
 
   for (const row of result.rows) {
     const inputSchema = parseField(row.input_schema, { type: 'object', properties: {} });
@@ -316,19 +343,29 @@ export async function getEnabledMCPTools(allowedToolIds?: number[]): Promise<{
         ? inputSchema
         : { type: 'object', properties: {} };
 
+    const shared = (nameCounts.get(row.name) ?? 0) > 1;
+    let name = shared ? functionName(`${row.server_name}__${row.name}`) : row.name;
+    if (toolMap.has(name)) {
+      // Two servers whose names clean up to the same text: the tool id keeps them apart
+      const suffix = `_${row.id}`;
+      name = name.slice(0, FUNCTION_NAME_MAX - suffix.length) + suffix;
+    }
+
+    const description = row.description || `Tool provided by MCP Server [${row.server_name}]`;
     tools.push({
       type: 'function',
       function: {
-        name: row.name,
-        description: row.description || `Tool provided by MCP Server [${row.server_name}]`,
+        name,
+        description: shared ? `[${row.server_name}] ${description}` : description,
         parameters,
       },
     });
 
-    toolMap.set(row.name, {
+    toolMap.set(name, {
       serverId: row.server_id,
       toolId: row.id,
       serverName: row.server_name,
+      toolName: row.name,
     });
   }
 
@@ -336,11 +373,28 @@ export async function getEnabledMCPTools(allowedToolIds?: number[]): Promise<{
 }
 
 /**
- * Executes a tool on its respective MCP server and returns the result.
+ * The tool id behind a bare tool name, for callers that only know the name (admin test runs).
+ * Refuses when several active servers expose that name, rather than guessing.
+ */
+export async function findMCPToolIdByName(toolName: string): Promise<{ toolId?: number; error?: string }> {
+  const result = await query<{ id: number }>(
+    `SELECT t.id FROM mcp_tools t JOIN mcp_servers s ON s.id = t.server_id
+     WHERE t.name = $1 AND s.is_active = true AND t.is_enabled = true`,
+    [toolName]
+  );
+  if (result.rows.length === 0) return { error: `Tool "${toolName}" is not available or is currently disabled.` };
+  if (result.rows.length > 1) {
+    return { error: `Several MCP servers expose "${toolName}"; choose the tool by id.` };
+  }
+  return { toolId: result.rows[0].id };
+}
+
+/**
+ * Executes one MCP tool, identified by its id, on the server it belongs to.
  * Supports long-running queries (e.g. database lookups) with a 10-minute timeout.
  */
 export async function executeMCPTool(
-  toolName: string,
+  toolId: number,
   args: Record<string, any>,
   timeoutMs = DEFAULT_TOOL_TIMEOUT_MS
 ): Promise<{
@@ -348,24 +402,23 @@ export async function executeMCPTool(
   isError: boolean;
   server_name?: string;
 }> {
-  // Find which server provides this tool
   const toolResult = await query(
     `SELECT t.*, s.name as server_name, s.transport_type, s.url, s.command, s.args, s.env, s.headers, s.is_active
      FROM mcp_tools t
      JOIN mcp_servers s ON s.id = t.server_id
-     WHERE t.name = $1 AND s.is_active = true AND t.is_enabled = true
-     LIMIT 1`,
-    [toolName]
+     WHERE t.id = $1 AND s.is_active = true AND t.is_enabled = true`,
+    [toolId]
   );
 
   if (toolResult.rows.length === 0) {
     return {
-      content: `Error: Tool "${toolName}" is not available or is currently disabled.`,
+      content: `Error: MCP tool #${toolId} is not available or is currently disabled.`,
       isError: true,
     };
   }
 
   const row = toolResult.rows[0];
+  const toolName: string = row.name;
   const server: MCPServerRecord = {
     id: row.server_id,
     name: row.server_name,

@@ -8,7 +8,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 const COOKIE_NAME = 'auth_token';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get(COOKIE_NAME)?.value;
 
@@ -45,8 +45,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 2. Protect Chat routes (require login)
-  if (pathname.startsWith('/chat')) {
+  // 2. Protect Chat and Knowledge routes (require login)
+  if (pathname.startsWith('/chat') || pathname.startsWith('/knowledge')) {
     if (!sessionUser) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
@@ -69,5 +69,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/chat/:path*', '/chat', '/login', '/register'],
+  matcher: ['/admin/:path*', '/chat/:path*', '/chat', '/knowledge/:path*', '/knowledge', '/login', '/register'],
 };

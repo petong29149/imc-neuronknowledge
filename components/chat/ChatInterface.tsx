@@ -25,6 +25,7 @@ import {
   Settings,
   Search,
   ShieldCheck,
+  Database,
   Pencil,
   Check,
   X,
@@ -1632,6 +1633,15 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
                     <span>Admin Console</span>
                   </Link>
                 )}
+
+                <Link
+                  href="/knowledge"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-all cursor-pointer text-left"
+                >
+                  <Database className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                  <span>คลังความรู้</span>
+                </Link>
 
                 <button
                   type="button"

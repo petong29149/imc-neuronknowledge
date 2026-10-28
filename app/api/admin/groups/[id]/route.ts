@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { query } from '@/lib/db';
+import { parseOrgIdField } from '@/lib/knowledge';
 
 /**
  * GET /api/admin/groups/[id]
@@ -20,7 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     const groupRes = await query(
-      'SELECT id, name, description, is_active, created_at, updated_at FROM groups WHERE id = $1',
+      'SELECT id, name, description, org_id, is_active, created_at, updated_at FROM groups WHERE id = $1',
       [groupId]
     );
     if (groupRes.rows.length === 0) {
@@ -70,6 +71,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const body = await request.json();
     const { name, description, is_active, member_ids } = body;
+    const { orgId, error: orgIdError } = parseOrgIdField(body.org_id);
+    if (orgIdError) {
+      return NextResponse.json({ error: orgIdError }, { status: 400 });
+    }
+    if (orgId) {
+      const orgTaken = await query('SELECT id FROM groups WHERE org_id = $1 AND id != $2 LIMIT 1', [
+        orgId,
+        groupId,
+      ]);
+      if (orgTaken.rows.length > 0) {
+        return NextResponse.json({ error: 'รหัสองค์กรนี้ถูกใช้งานโดยกลุ่มอื่นแล้ว' }, { status: 409 });
+      }
+    }
 
     if (name !== undefined && (typeof name !== 'string' || name.trim().length === 0)) {
       return NextResponse.json({ error: 'กรุณากรอกชื่อกลุ่ม' }, { status: 400 });
@@ -104,6 +118,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       valIndex++;
     }
 
+    if (orgId !== undefined) {
+      updates.push(`org_id = $${valIndex}`);
+      values.push(orgId);
+      valIndex++;
+    }
+
     if (is_active !== undefined) {
       updates.push(`is_active = $${valIndex}`);
       values.push(Boolean(is_active));
@@ -115,7 +135,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const result = await query(
       `UPDATE groups SET ${updates.join(', ')} WHERE id = $${valIndex}
-       RETURNING id, name, description, is_active, created_at, updated_at`,
+       RETURNING id, name, description, org_id, is_active, created_at, updated_at`,
       values
     );
 

@@ -1,0 +1,121 @@
+# Knowledge Engine (plan §7). Base file = what runs in production; ports are opened
+# only in docker-compose.override.yml (loaded automatically in dev).
+#
+#   docker compose up -d --build                              # uses the app's Postgres (POSTGRES_URL)
+#   docker compose --profile standalone-db up -d --build      # also starts a Postgres container
+#
+# Production: docker compose -f docker-compose.yml up -d   (skips the dev override)
+
+name: knowledge-engine
+
+# Only `migrate` builds the image (parallel builds of one tag race); the others reuse it
+# with pull_policy: never — the image is local only, never fetch a same-named one from a registry.
+x-engine: &engine
+  image: knowledge-engine:base
+  env_file: .env
+  restart: unless-stopped
+  # Reach the app's Postgres on the host (Docker Desktop provides this name; Linux needs the mapping)
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  volumes:
+    - files:/data/files
+    - hf_cache:/opt/hf-cache
+
+x-engine-deps: &engine-deps
+  qdrant:
+    condition: service_healthy
+  postgres:
+    condition: service_healthy
+    required: false # only exists with --profile standalone-db
+  migrate:
+    condition: service_completed_successfully
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["standalone-db"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${STANDALONE_POSTGRES_PASSWORD:-knowledge-dev}
+      POSTGRES_DB: imc-neuronknowledge
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d imc-neuronknowledge"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.2
+    restart: unless-stopped
+    # Not reachable from outside compose in this file. If Qdrant is exposed (or hosted
+    # elsewhere), give it QDRANT__SERVICE__API_KEY and set the same value as QDRANT_API_KEY.
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    healthcheck:
+      # The image has no curl/wget; ask /readyz over bash's /dev/tcp
+      test:
+        - CMD
+        - bash
+        - -c
+        - 'exec 3<>/dev/tcp/127.0.0.1/6333 && printf ''GET /readyz HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n'' >&3 && grep -q ''200 OK'' <&3'
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *engine
+    build:
+      context: .
+      target: base
+    command: ["python", "-m", "knowledge.migrate"]
+    restart: "no"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+        required: false
+
+  api:
+    <<: *engine
+    pull_policy: never
+    command: ["uvicorn", "knowledge.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    depends_on: *engine-deps
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    <<: *engine
+    pull_policy: never
+    command: ["python", "-m", "knowledge.worker"]
+    depends_on: *engine-deps
+    # Graceful shutdown: the worker finishes its current step on SIGTERM
+    stop_grace_period: 60s
+
+  mcp:
+    <<: *engine
+    # Its own tag, so the reranker image (torch, ~2GB larger) is only built for mcp:
+    # MCP_TARGET=rerank together with RERANK_ENABLED=true (plan T10)
+    image: knowledge-engine:mcp-${MCP_TARGET:-base}
+    build:
+      context: .
+      target: ${MCP_TARGET:-base}
+    command: ["python", "-m", "knowledge.mcp_server"]
+    depends_on: *engine-deps
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8765), timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  pgdata:
+  qdrant_storage:
+  files:
+  hf_cache:

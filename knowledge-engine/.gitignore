@@ -1,0 +1,9 @@
+# .env is already ignored by the repo root (.env*); example.env is the committed template
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+# Customer files used for local testing may be confidential
+tests/fixtures/real/
+eval/results/

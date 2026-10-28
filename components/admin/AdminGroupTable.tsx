@@ -23,6 +23,7 @@ export interface GroupItem {
   id: number;
   name: string;
   description: string;
+  org_id: string | null;
   is_active: boolean;
   member_count: number;
   members: GroupMember[];
@@ -109,8 +110,16 @@ export default function AdminGroupTable({
                           {initials}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-semibold text-slate-900 dark:text-white text-xs truncate max-w-[160px] sm:max-w-none">
-                            {group.name}
+                          <div className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-white text-xs">
+                            <span className="truncate max-w-[160px] sm:max-w-none">{group.name}</span>
+                            {group.org_id && (
+                              <span
+                                title="รหัสองค์กรในคลังความรู้"
+                                className="px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200/70 dark:border-emerald-500/20 shrink-0"
+                              >
+                                {group.org_id}
+                              </span>
+                            )}
                           </div>
                           <div className="text-[11px] text-slate-400 truncate max-w-[180px] sm:max-w-[320px]">
                             {group.description || "ไม่มีคำอธิบาย"}

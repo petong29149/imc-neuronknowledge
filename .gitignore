@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Dev database package for teammates (contains the shared dev passwords)
+/neuron-devdb.zip
+/imc-neuronknowledge-*.zip

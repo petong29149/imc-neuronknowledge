@@ -1,0 +1,50 @@
+# Dev overrides (loaded automatically by `docker compose`): dev image with pytest,
+# source bind-mounted with auto-reload, and ports opened on localhost only.
+
+x-dev: &dev
+  image: knowledge-engine:dev
+  volumes:
+    - files:/data/files
+    - hf_cache:/opt/hf-cache
+    - ./src:/app/src
+    - ./tests:/app/tests
+    - ./migrations:/app/migrations
+    - ./resources:/app/resources
+    - ./eval:/app/eval # T11 questions + results
+    - ./pyproject.toml:/app/pyproject.toml:ro # pytest / ruff settings
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5433:5432" # 5432 is usually taken by a local Postgres
+
+  qdrant:
+    ports:
+      - "127.0.0.1:6333:6333" # dashboard: http://localhost:6333/dashboard
+
+  migrate:
+    <<: *dev
+    build:
+      context: .
+      target: dev
+
+  api:
+    <<: *dev
+    command: ["uvicorn", "knowledge.api:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/src"]
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  worker:
+    <<: *dev
+    command: ["watchfiles", "--filter", "python", "python -m knowledge.worker", "/app/src"]
+
+  mcp:
+    <<: *dev
+    # MCP_DEV_TARGET=dev-rerank (with RERANK_ENABLED=true) to try the reranker in dev
+    image: knowledge-engine:mcp-${MCP_DEV_TARGET:-dev}
+    build:
+      context: .
+      target: ${MCP_DEV_TARGET:-dev}
+    command: ["watchfiles", "--filter", "python", "python -m knowledge.mcp_server", "/app/src"]
+    ports:
+      - "127.0.0.1:8765:8765" # the NeuronKnowledge app registers http://localhost:8765/mcp

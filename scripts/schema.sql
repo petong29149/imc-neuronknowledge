@@ -36,6 +36,10 @@ CREATE TABLE IF NOT EXISTS groups (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_name_lower ON groups(LOWER(name));
 CREATE INDEX IF NOT EXISTS idx_groups_active ON groups(is_active);
 
+-- The Knowledge Engine organization this group stands for (NULL = not an organization)
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS org_id VARCHAR(63);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_org_id ON groups(org_id) WHERE org_id IS NOT NULL;
+
 -----------------------------------
 -------- 3. group_members ---------
 -----------------------------------

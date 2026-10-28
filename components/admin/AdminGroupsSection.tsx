@@ -43,6 +43,7 @@ type ModalState =
 const EMPTY_FORM: GroupForm = {
   name: "",
   description: "",
+  org_id: "",
   is_active: true,
   member_ids: [],
 };
@@ -144,6 +145,7 @@ export default function AdminGroupsSection() {
     setForm({
       name: group.name,
       description: group.description || "",
+      org_id: group.org_id || "",
       is_active: group.is_active,
       member_ids: group.members.map((m) => m.id),
     });

@@ -1,4 +1,4 @@
-import { getEnabledMCPTools, executeMCPTool, OpenAIToolDefinition } from '@/lib/mcp';
+import { getEnabledMCPTools, executeMCPTool, MCPToolRef, OpenAIToolDefinition } from '@/lib/mcp';
 import {
   getBuiltinTool,
   getBuiltinToolDefinitions,
@@ -13,6 +13,8 @@ export interface TurnTools {
   allowedNames: Set<string>;
   builtinNames: string[];
   mcpNames: string[];
+  /** Offered MCP function name → the exact tool behind it (names can be `<server>__<tool>`) */
+  mcpTools: Map<string, MCPToolRef>;
 }
 
 /**
@@ -28,15 +30,20 @@ export async function resolveTurnTools(
   const builtinNames = builtinTools.map((t) => t.function.name);
 
   let mcpTools: OpenAIToolDefinition[] = [];
+  const mcpRefs = new Map<string, MCPToolRef>();
   if (mcpEnabled && mcpToolIds?.length !== 0) {
     try {
-      mcpTools = (await getEnabledMCPTools(mcpToolIds)).tools.filter((t) => {
+      const enabled = await getEnabledMCPTools(mcpToolIds);
+      mcpTools = enabled.tools.filter((t) => {
         if (!getBuiltinTool(t.function.name)) return true;
         console.warn(
           `MCP tool "${t.function.name}" is skipped: the name is reserved for a built-in tool.`
         );
         return false;
       });
+      for (const t of mcpTools) {
+        mcpRefs.set(t.function.name, enabled.toolMap.get(t.function.name)!);
+      }
     } catch (err) {
       console.error('Error fetching MCP tools:', err);
     }
@@ -48,22 +55,24 @@ export async function resolveTurnTools(
     allowedNames: new Set([...builtinNames, ...mcpNames]),
     builtinNames,
     mcpNames,
+    mcpTools: mcpRefs,
   };
 }
 
 /**
- * Run a tool call from the model. Built-in tools run in-process; everything else
- * goes to its MCP server. `allowedNames` is enforced here, on the server, because
- * the model can emit any tool name regardless of what it was offered.
- * Pass `allowedNames: null` to skip the check (admin test runs).
+ * Run a tool call from the model. Built-in tools run in-process; MCP tools run on the
+ * server of the exact tool offered this turn (looked up in `turn.mcpTools`, never by name
+ * across servers). The offered set is enforced here, on the server, because the model can
+ * emit any tool name regardless of what it was offered.
+ * Pass `turn: null` to run a built-in tool without that check (admin test runs).
  */
 export async function executeTool(
   name: string,
   args: Record<string, any>,
   ctx: ToolContext,
-  allowedNames: Set<string> | null
+  turn: Pick<TurnTools, 'allowedNames' | 'mcpTools'> | null
 ): Promise<ToolResult & { server_name?: string }> {
-  if (allowedNames && !allowedNames.has(name)) {
+  if (turn && !turn.allowedNames.has(name)) {
     return { content: `Error: Tool "${name}" is not available in this conversation.`, isError: true };
   }
 
@@ -76,5 +85,9 @@ export async function executeTool(
     }
   }
 
-  return executeMCPTool(name, args);
+  const ref = turn?.mcpTools.get(name);
+  if (!ref) {
+    return { content: `Error: Tool "${name}" is not available in this conversation.`, isError: true };
+  }
+  return executeMCPTool(ref.toolId, args);
 }

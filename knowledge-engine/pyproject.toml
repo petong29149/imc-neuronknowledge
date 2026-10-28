@@ -1,0 +1,57 @@
+# Ranges say which majors are supported; the exact tested versions are in
+# docker/constraints.txt, which every image build uses.
+[project]
+name = "knowledge-engine"
+version = "0.1.0"
+description = "RAG ingestion pipeline and MCP search server for IMC NeuronKnowledge"
+requires-python = ">=3.11"
+dependencies = [
+  "pymupdf>=2.0,<2.1", # 2.0 changed find_tables (ONNX layout model, segfaulted): re-test before moving
+  "python-docx>=1.1",
+  "python-pptx>=1.0",
+  "charset-normalizer>=3.3",
+  "pythainlp>=5.0,<6", # tokenizer changes need a TOKENIZER_VERSION bump + reindex
+  "python-crfsuite>=0.9.10",
+  "tiktoken>=0.8,<1",
+  "openai>=3.39,<4",
+  "qdrant-client>=1.15,<2",
+  "mmh3>=4.1",
+  "psycopg[binary,pool]>=3.2",
+  "pydantic-settings>=2.4",
+  "boto3>=1.34",
+  "mcp>=2.3,<3", # 2.x: FastMCP is now mcp.server.mcpserver.MCPServer
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "python-multipart>=0.0.9",
+  "tenacity>=9.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+# torch (CPU wheel) is installed separately in the Dockerfile `rerank` target
+rerank = ["sentence-transformers>=6.0,<7"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/knowledge"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+markers = [
+  "integration: needs the Postgres and Qdrant from docker compose",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["knowledge", "tests"]

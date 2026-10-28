@@ -715,7 +715,7 @@ export async function runLLMAgentLoop(
           // Built-in tools run in-process, MCP tools on their server (10-minute timeout);
           // stop waiting if the user stops
           execResult = await unlessAborted(
-            executeTool(tc.name, parsedArgs, toolCtx, turnTools.allowedNames),
+            executeTool(tc.name, parsedArgs, toolCtx, turnTools),
             signal
           );
         } finally {

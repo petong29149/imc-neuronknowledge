@@ -21,6 +21,8 @@ import type { UserItem } from "@/components/admin/AdminUserTable";
 export interface GroupForm {
   name: string;
   description: string;
+  /** Knowledge Engine organization code; "" = this group is not an organization */
+  org_id: string;
   is_active: boolean;
   member_ids: number[];
 }
@@ -195,6 +197,23 @@ export function GroupFormModal({
             placeholder="หน้าที่และขอบเขตการใช้งานของกลุ่มนี้"
             className={`${INPUT} resize-none`}
           />
+        </div>
+
+        <div>
+          <label className={LABEL}>รหัสองค์กรสำหรับคลังความรู้ (org_id)</label>
+          <input
+            type="text"
+            value={form.org_id}
+            onChange={(e) => setForm({ ...form, org_id: e.target.value.toLowerCase() })}
+            placeholder="เช่น acme (เว้นว่างถ้ากลุ่มนี้ไม่ใช่องค์กร)"
+            pattern="[a-z0-9][a-z0-9_\-]{1,62}"
+            title="a-z ตัวเลข - หรือ _ ยาว 2–63 ตัว และขึ้นต้นด้วยตัวอักษรหรือตัวเลข"
+            className={`${INPUT} font-mono`}
+          />
+          <p className="mt-1 text-[11px] text-slate-400">
+            สมาชิกของกลุ่มที่มีรหัสนี้จะอัปโหลดและค้นเอกสารในคลังความรู้ขององค์กรเดียวกัน
+            {isEdit && " · เปลี่ยนรหัสแล้วเอกสารที่อัปโหลดไว้ภายใต้รหัสเดิมจะไม่แสดงในองค์กรนี้"}
+          </p>
         </div>
 
         <div>

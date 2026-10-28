@@ -531,6 +531,8 @@ export default function AdminMCPSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tool_name: modal.tool.name,
+          // MCP tools run by id (several servers may share a name); built-ins have no row
+          tool_id: modal.tool.transport_type === "builtin" ? undefined : modal.tool.id,
           arguments: parsedArgs,
           source: modal.tool.transport_type === "builtin" ? "builtin" : "mcp",
         }),

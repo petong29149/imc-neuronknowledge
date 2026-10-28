@@ -101,6 +101,11 @@ export async function ensureDatabaseSchema() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_name_lower ON groups(LOWER(name));
     CREATE INDEX IF NOT EXISTS idx_groups_active ON groups(is_active);
 
+    -- The Knowledge Engine organization this group stands for (NULL = not an organization).
+    -- Members upload and search documents under this id; see lib/knowledge.ts
+    ALTER TABLE groups ADD COLUMN IF NOT EXISTS org_id VARCHAR(63);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_org_id ON groups(org_id) WHERE org_id IS NOT NULL;
+
     -- Membership join table between users and groups
     CREATE TABLE IF NOT EXISTS group_members (
       id SERIAL PRIMARY KEY,

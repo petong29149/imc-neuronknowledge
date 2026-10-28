@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { ensureDatabaseSchema } from '@/lib/db';
-import { executeMCPTool } from '@/lib/mcp';
+import { executeMCPTool, findMCPToolIdByName } from '@/lib/mcp';
 import { listActiveSkills } from '@/lib/skills';
 import { executeTool } from '@/lib/tool-executor';
 
@@ -32,10 +32,20 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { tool_name, arguments: toolArgs = {}, timeout_ms, source = 'mcp' } = body;
+    const { tool_name, tool_id, arguments: toolArgs = {}, timeout_ms, source = 'mcp' } = body;
 
     if (!tool_name || !tool_name.trim()) {
       return NextResponse.json({ error: 'Missing tool_name' }, { status: 400 });
+    }
+
+    // An MCP tool runs by its id: several servers may expose the same name
+    let mcpToolId = Number.isInteger(tool_id) ? (tool_id as number) : undefined;
+    if (source !== 'builtin' && mcpToolId === undefined) {
+      const found = await findMCPToolIdByName(tool_name.trim());
+      if (found.error) {
+        return NextResponse.json({ error: found.error }, { status: 400 });
+      }
+      mcpToolId = found.toolId;
     }
 
     // `source` picks the implementation explicitly, so testing an MCP tool that shares
@@ -49,7 +59,7 @@ export async function POST(request: Request) {
             { userId: auth.session?.id, skills: await listActiveSkills() },
             null
           )
-        : await executeMCPTool(tool_name.trim(), toolArgs, timeout_ms);
+        : await executeMCPTool(mcpToolId!, toolArgs, timeout_ms);
     const executionTimeMs = Date.now() - startTime;
 
     return NextResponse.json({

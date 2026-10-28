@@ -15,6 +15,7 @@ export const NO_TURN_TOOLS: TurnTools = {
   allowedNames: new Set(),
   builtinNames: [],
   mcpNames: [],
+  mcpTools: new Map(),
 };
 
 export interface TurnContextInput {

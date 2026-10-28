@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { query, ensureDatabaseSchema } from '@/lib/db';
+import { parseOrgIdField } from '@/lib/knowledge';
 
 /**
  * GET /api/admin/groups
@@ -44,6 +45,7 @@ export async function GET(request: Request) {
         g.id,
         g.name,
         g.description,
+        g.org_id,
         g.is_active,
         g.created_at,
         g.updated_at,
@@ -116,6 +118,10 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { name, description = '', is_active = true, member_ids = [] } = body;
+    const { orgId, error: orgIdError } = parseOrgIdField(body.org_id);
+    if (orgIdError) {
+      return NextResponse.json({ error: orgIdError }, { status: 400 });
+    }
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'กรุณากรอกชื่อกลุ่ม' }, { status: 400 });
@@ -128,12 +134,18 @@ export async function POST(request: Request) {
     if (existing.rows.length > 0) {
       return NextResponse.json({ error: 'ชื่อกลุ่มนี้ถูกใช้งานแล้วในระบบ' }, { status: 409 });
     }
+    if (orgId) {
+      const orgTaken = await query('SELECT id FROM groups WHERE org_id = $1 LIMIT 1', [orgId]);
+      if (orgTaken.rows.length > 0) {
+        return NextResponse.json({ error: 'รหัสองค์กรนี้ถูกใช้งานโดยกลุ่มอื่นแล้ว' }, { status: 409 });
+      }
+    }
 
     const insertResult = await query(
-      `INSERT INTO groups (name, description, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, NOW(), NOW())
-       RETURNING id, name, description, is_active, created_at, updated_at`,
-      [trimmedName, String(description || '').trim(), Boolean(is_active)]
+      `INSERT INTO groups (name, description, org_id, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       RETURNING id, name, description, org_id, is_active, created_at, updated_at`,
+      [trimmedName, String(description || '').trim(), orgId ?? null, Boolean(is_active)]
     );
 
     const group = insertResult.rows[0];

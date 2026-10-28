@@ -1,0 +1,34 @@
+# NeuronKnowledge dev databases — one PostgreSQL with two separate databases:
+#   imc_neuronknowledge  the Next.js app        (user nk_app)
+#   knowledge_engine     the Knowledge Engine   (user nk_engine)
+# Each user can connect only to its own database. See README.md.
+#
+#   docker compose up -d        # start (first run creates the databases and users)
+#   docker compose down -v      # remove container AND data (init runs again next time)
+
+name: neuron-devdb
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nk-neuron-devdb
+    environment:
+      POSTGRES_PASSWORD: ${PG_SUPER_PASSWORD}
+      APP_DB: ${APP_DB}
+      APP_DB_USER: ${APP_DB_USER}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+      ENGINE_DB: ${ENGINE_DB}
+      ENGINE_DB_USER: ${ENGINE_DB_USER}
+      ENGINE_DB_PASSWORD: ${ENGINE_DB_PASSWORD}
+    ports: ["127.0.0.1:${PG_PORT}:5432"]
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${ENGINE_DB}"]
+      interval: 5s
+      retries: 30
+    restart: unless-stopped
+
+volumes:
+  pg-data:

@@ -1,0 +1,5 @@
+# Organization-specific words for PyThaiNLP newmm (one word per line; # starts a comment).
+# Changing this file requires bumping TOKENIZER_VERSION in thai_text.py and a sparse reindex.
+NeuronKnowledge
+นิวรอนโนวเลจ
+ไอเอ็มซี

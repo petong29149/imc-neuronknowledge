@@ -51,6 +51,10 @@
 > ```bash
 > docker run -d --name imc-postgres -p 5432:5432 -e POSTGRES_PASSWORD=1234 -e POSTGRES_DB=imc-neuronknowledge postgres:16-alpine
 > ```
+>
+> **เริ่มใช้ Knowledge Engine (คลังความรู้):** อ่าน [README-SETUP-KNOWLEDGE.md](README-SETUP-KNOWLEDGE.md) — ตั้งระบบทีละขั้นจนอัปโหลดและถามในแชทได้
+>
+> **ทีม dev:** ใช้ชุด [`neuron-devdb/`](neuron-devdb/README.md) แทนได้ — PostgreSQL ตัวเดียวที่มี database แยกให้แอป (`imc_neuronknowledge`) และ Knowledge Engine (`knowledge_engine`) พร้อมผู้ใช้/รหัสผ่านที่ทุกคนใช้ร่วมกัน (port `5434`)
 
 ---
 
