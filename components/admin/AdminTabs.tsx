@@ -3,23 +3,28 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChartColumn, Users, Brain, Server, Sparkles, Bot, ScrollText } from "lucide-react";
+import { ChartColumn, Users, Brain, Plug, Sparkles, Bot, ScrollText, History } from "lucide-react";
 
 export interface AdminTab {
   href: string;
   label: string;
   shortLabel: string;
   icon: typeof Users;
+  /** Only active on its own route, not on nested routes (for an overview tab at the section root) */
+  exact?: boolean;
 }
 
+// MCP Hub is first: NeuronKnowledge is the MCP/knowledge hub, so the hub tabs
+// come before the tabs for agents, prompts and chat settings.
 export const ADMIN_TABS: AdminTab[] = [
+  { href: "/admin/mcp", label: "MCP Hub", shortLabel: "MCP", icon: Plug },
+  { href: "/admin/agents", label: "AI Agents", shortLabel: "Agents", icon: Bot },
+  { href: "/admin/skills", label: "Skills", shortLabel: "Skills", icon: Sparkles },
   { href: "/admin/dashboard", label: "แดชบอร์ด", shortLabel: "Dashboard", icon: ChartColumn },
   { href: "/admin/users", label: "จัดการผู้ใช้งาน", shortLabel: "ผู้ใช้", icon: Users },
   { href: "/admin/llm", label: "LLM & Models", shortLabel: "LLM", icon: Brain },
-  { href: "/admin/mcp", label: "MCP Servers", shortLabel: "MCP", icon: Server },
-  { href: "/admin/agents", label: "AI Agents", shortLabel: "Agents", icon: Bot },
-  { href: "/admin/skills", label: "Skills", shortLabel: "Skills", icon: Sparkles },
   { href: "/admin/prompts", label: "System Prompt", shortLabel: "Prompt", icon: ScrollText },
+  { href: "/admin/activity", label: "ประวัติการใช้งาน", shortLabel: "Activity", icon: History },
 ];
 
 /** A tab stays active on its own route and on anything nested under it. */
@@ -27,18 +32,24 @@ export function isTabActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function AdminTabs() {
+export default function AdminTabs({
+  tabs = ADMIN_TABS,
+  ariaLabel = "Admin Console",
+}: {
+  tabs?: AdminTab[];
+  ariaLabel?: string;
+}) {
   const pathname = usePathname();
 
   return (
     <nav
-      aria-label="Admin Console"
+      aria-label={ariaLabel}
       className="border-b border-slate-200/80 dark:border-white/10"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-          {ADMIN_TABS.map((tab) => {
-            const active = isTabActive(pathname, tab.href);
+          {tabs.map((tab) => {
+            const active = tab.exact ? pathname === tab.href : isTabActive(pathname, tab.href);
             const Icon = tab.icon;
             return (
               <Link

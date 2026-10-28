@@ -8,7 +8,9 @@ export const JWT_SECRET = new TextEncoder().encode(
 
 export const COOKIE_NAME = 'auth_token';
 
-export type UserRole = 'admin' | 'user';
+// 'creator' builds Knowledge Sets and Agents in /studio (see docs/specs/CORE-01-foundation.md)
+export type UserRole = 'admin' | 'creator' | 'user';
+export const USER_ROLES: UserRole[] = ['admin', 'creator', 'user'];
 
 export interface AuthUser {
   id: number;
@@ -69,7 +71,7 @@ export async function verifyToken(token: string): Promise<AuthUser | null> {
       id: Number(payload.id),
       name: String(payload.name || ''),
       email: String(payload.email),
-      role: (payload.role === 'admin' ? 'admin' : 'user') as UserRole,
+      role: USER_ROLES.includes(payload.role as UserRole) ? (payload.role as UserRole) : 'user',
     };
   } catch {
     return null;
@@ -108,6 +110,23 @@ export async function requireAdmin(): Promise<
       status: 403,
       session: null,
     };
+  }
+  return { error: null, status: 200, session };
+}
+
+/**
+ * Enforce that the session has one of the given roles in Route Handlers,
+ * e.g. requireRole(['admin', 'creator']) for /api/studio/**
+ */
+export async function requireRole(roles: UserRole[]): Promise<
+  { error: string; status: number; session: null } | { error: null; status: 200; session: AuthUser }
+> {
+  const session = await getSession();
+  if (!session) {
+    return { error: 'กรุณาเข้าสู่ระบบก่อนทำรายการ', status: 401, session: null };
+  }
+  if (!roles.includes(session.role)) {
+    return { error: 'คุณไม่มีสิทธิ์เข้าถึงส่วนนี้', status: 403, session: null };
   }
   return { error: null, status: 200, session };
 }

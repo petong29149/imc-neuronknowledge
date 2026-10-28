@@ -1625,7 +1625,7 @@ export default function ChatInterface({ initialSessionId }: { initialSessionId?:
               <div className="absolute bottom-full left-2 right-2 mb-2 p-1.5 bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl z-40 space-y-1 animate-popover">
                 {user?.role === "admin" && (
                   <Link
-                    href="/admin/dashboard"
+                    href="/admin/mcp"
                     onClick={() => setUserMenuOpen(false)}
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#0055fa] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all cursor-pointer text-left"
                   >

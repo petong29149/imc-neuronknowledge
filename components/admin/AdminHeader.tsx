@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { BookOpen, Shield, Home, Sun, Moon, LogOut, Sparkles } from "lucide-react";
+import { BookOpen, Shield, Home, Sun, Moon, LogOut } from "lucide-react";
 import { User } from "@/context/AuthContext";
 
 interface AdminHeaderProps {
@@ -10,6 +10,8 @@ interface AdminHeaderProps {
   theme: string | undefined;
   toggleTheme: () => void;
   logout: () => void;
+  /** Section badge next to the logo, e.g. "Creator Studio" when reused by StudioShell */
+  badge?: string;
 }
 
 export default function AdminHeader({
@@ -17,6 +19,7 @@ export default function AdminHeader({
   theme,
   toggleTheme,
   logout,
+  badge = "Admin Console",
 }: AdminHeaderProps) {
   return (
     <header className="py-3.5">
@@ -33,20 +36,11 @@ export default function AdminHeader({
 
           <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/20">
             <Shield className="w-3.5 h-3.5" />
-            Admin Console
+            {badge}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3">
-
-          <Link
-            href="/chat"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#0055fa] hover:bg-[#0046d1] rounded-xl shadow-xs transition-all"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Chat AI</span>
-          </Link>
-
           <Link
             href="/"
             title="กลับสู่หน้าหลัก"

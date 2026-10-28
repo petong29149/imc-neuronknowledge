@@ -52,7 +52,9 @@ function LoginForm() {
         if (redirectPath) {
           router.push(redirectPath);
         } else if (result.user.role === "admin") {
-          router.push("/chat");
+          router.push("/admin/mcp");
+        } else if (result.user.role === "creator") {
+          router.push("/studio");
         } else {
           router.push("/");
         }

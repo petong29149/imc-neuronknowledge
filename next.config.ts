@@ -8,8 +8,8 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // The admin console has no index page of its own; it opens on the dashboard tab.
-      { source: "/admin", destination: "/admin/dashboard", permanent: false },
+      // The admin console has no index page of its own; it opens on the MCP Hub tab.
+      { source: "/admin", destination: "/admin/mcp", permanent: false },
       { source: "/admin/usage", destination: "/admin/dashboard", permanent: false },
     ];
   },

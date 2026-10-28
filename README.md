@@ -1,6 +1,6 @@
 # 🧠 IMC NeuronKnowledge
 
-ระบบแพลตฟอร์ม AI Chat & Knowledge Management ระดับองค์กร (Enterprise AI Assistant) พัฒนาด้วย Next.js (App Router), PostgreSQL และรองรับสถาปัตยกรรม Model Context Protocol (MCP) พร้อมระบบจัดการความปลอดภัยและคอนโซลแอดมินเต็มรูปแบบ
+ศูนย์กลาง **MCP Server & Knowledge Hub** สำหรับ AI Agent ระดับองค์กร พัฒนาด้วย Next.js (App Router), PostgreSQL และสถาปัตยกรรม Model Context Protocol (MCP) พร้อมคอนโซลแอดมินสำหรับจัดการ MCP Servers/Tools, Agents, Skills และผู้ใช้งาน
 
 ---
 
@@ -148,7 +148,7 @@ npm run dev
 1. **สร้างบัญชีผู้ดูแลระบบ (First User = Admin)**:
    - เข้าไปที่ `/register` หรือคลิกปุ่ม "สมัครสมาชิก"
    - **กฎของระบบ**: ผู้ใช้งานคนแรกสุดที่ลงทะเบียนจะได้รับบทบาท **Admin** โดยอัตโนมัติ!
-   - เมื่อสมัครเสร็จแล้ว ระบบจะพาเข้าหน้า `/admin/dashboard` ทันที
+   - เมื่อสมัครเสร็จแล้ว ระบบจะพาเข้าหน้า `/admin/mcp` (MCP Hub) ทันที
 
 2. **ตั้งค่าการเชื่อมต่อโมเดล LLM**:
    - ไปที่เมนู **Admin > LLM Connections**
@@ -160,8 +160,9 @@ npm run dev
 3. **(ทางเลือก) เชื่อมต่อ MCP Servers**:
    - ไปที่เมนู **Admin > MCP Servers** เพื่อเชื่อมต่อ Tool Server ภายนอก และคลิก "Sync Tools"
 
-4. **เริ่มใช้งาน Chat**:
-   - เข้าไปที่ `/chat` เพื่อเริ่มสนทนา, เลือก Agent, ปรับ Effort Level หรือสั่งงานเครื่องมือ
+4. **ทดสอบด้วย Test console**:
+   - เข้าไปที่ `/chat` เพื่อทดสอบ MCP Tools และ Agent ที่ตั้งค่าไว้ (เลือก Agent, ปรับ Effort Level, ดูผล tool call)
+   - การใช้งานจริงของผู้ใช้ปลายทางอยู่ที่ระบบแชท (ค่าเริ่มต้น `https://moc.imcinstitute.com`)
 
 ---
 
@@ -236,6 +237,17 @@ imc-neuronknowledge/
   - ใช้งานหน้า `/chat` สนทนากับ AI
   - เลือก Agent ที่ได้รับสิทธิ์ และสลับโมเดลที่เปิดใช้งาน
   - จัดการประวัติการสนทนาของตนเอง และแก้ไข Profile ส่วนตัว
+
+---
+
+## 👥 การพัฒนาเป็นทีม (Team Workflow)
+
+- **3 บทบาท**: User (`/agents`, `/chat`), Creator (`/studio`), Admin (`/admin`)
+- **งานและสถานะ**: Miro "NeuronKnowledge Studio" → Page Tracker (https://miro.com/app/board/uXjVEXL8TEM=/) งานมี ID ตามหน้า เช่น `S03`, `P01`, `CORE-01`
+- **Spec ของแต่ละหน้า**: [docs/specs/README.md](docs/specs/README.md) (สารบัญ, branch, ลำดับการ merge) และ data model กลางที่ [docs/specs/00-data-model.md](docs/specs/00-data-model.md)
+- **Branch**: `page/<slug>` หรือ `core/<ชื่อ>` → PR เข้า `staging` → ทดสอบบนเว็บ staging → Maintainer PR `staging` → `main` (production)
+- **Workflow ต่อหน้า**: Designer → คนอนุมัติ Spec → Builder → Reviewer → PR + AI Review bot → คน Approve ตามกติกาใน [AGENTS.md](AGENTS.md)
+- **Memory hub**: [docs/memory/](docs/memory/README.md) — AI ทุกตัวอ่านก่อนเริ่มงาน
 
 ---
 
