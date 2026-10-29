@@ -18,6 +18,7 @@ export default function NeuronHubPage() {
           { label: "ภาพรวม", href: "#top" },
           { label: "ฟีเจอร์", href: "#features" },
           { label: "Showcase", href: "#showcase" },
+          { label: "Demo แชท", href: "/demo" },
           { label: "← หน้าขาย", href: "/" },
         ]}
       />
